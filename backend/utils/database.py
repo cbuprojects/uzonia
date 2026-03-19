@@ -36,7 +36,7 @@ async def init_db_pool() -> None:
     async with pool.acquire() as conn:
 
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS numeric_codes (
+            CREATE TABLE IF NOT EXISTS repo_data (
                 id                       SERIAL PRIMARY KEY,
                 file_id                  TEXT NOT NULL UNIQUE
                 number_of_application    TEXT NOT NULL UNIQUE,
@@ -55,7 +55,7 @@ async def init_db_pool() -> None:
         """)
 
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS numeric_codes (
+            CREATE TABLE IF NOT EXISTS uzonia_data (
                 id                        SERIAL PRIMARY KEY,
                 file_id                   TEXT NOT NULL UNIQUE,
                 uzonia                    NUMERIC(4, 4) NOT NULL,
@@ -70,7 +70,7 @@ async def init_db_pool() -> None:
         """)
 
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS numeric_codes (
+            CREATE TABLE IF NOT EXISTS file_ (
                 id                       SERIAL PRIMARY KEY,
                 file_id                  TEXT NOT NULL UNIQUE,
                 file_path                TEXT NOT NULL UNIQUE,
@@ -79,9 +79,6 @@ async def init_db_pool() -> None:
                 created_at               DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 finished_at              DATETIME NOT NULL
         """)
-
-
-
 
 
 async def close_db_pool() -> None:
