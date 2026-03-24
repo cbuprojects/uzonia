@@ -22,7 +22,7 @@ const fetcher = async (url: string) => {
 // ─── Nav ─────────────────────────────────────────────────────────────────────
 
 const NAV_PAGES = [
-  { label: 'Calculations', icon: 'calculate',       path: '/calculations' },
+  { label: 'Calculations', icon: 'calculate',       path: '/' },
   { label: 'Uploads',      icon: 'upload_file',     path: '/uploads'      },
   { label: 'Repo',         icon: 'account_balance', path: '/repo'         },
   { label: 'Depo',         icon: 'savings',         path: '/depo'         },

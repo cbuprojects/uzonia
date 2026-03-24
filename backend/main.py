@@ -8,9 +8,10 @@ from typing import Dict
 import shutil
 import asyncio
 from uuid import uuid4
+import io
 from zoneinfo import ZoneInfo
 import random
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import FastAPI, UploadFile, HTTPException, Form
 from fastapi.responses import FileResponse
 from requests import Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +22,7 @@ from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data
                             add_holiday_data, edit_holiday_data, delete_holiday_data,
                             get_n_uzonia_data, get_single_uzonia_data, add_new_uzonia_data,
                             delete_uzonia_data, get_all_uzonia_data, edit_uzonia_data,
-                            get_single_uzonia_upload, get_all_uzonia_uploads, delete_uzonia_upload,
+                            get_single_uzonia_upload, get_all_uzonia_uploads, delete_uzonia_upload, edit_uzonia_upload_status,
                             get_date_filtered_rate_uzonia, get_time_period_uzonia_data,
                             add_new_uzonia_upload)
 from utils.add_data import add_new_uzonia_data_to_the_db, add_new_holiday_data_to_the_db
@@ -424,94 +425,129 @@ async def download_uzonia_data_file_api(file_id: str):
         raise HTTPException(status_code=404, detail=f"Could not download file {output_file_path}: {e}")
 
 
+
+
 # ---------------------------------------------------------------------------
 # uzonia_data_calculations
 # ---------------------------------------------------------------------------
 
 @app.post("/api/add_new_uzonia_calculation", tags=["Add new uzonia"])
-async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: UploadFile, deposit_file: UploadFile, cb_date: date, cb_rate: float, cb_deposit: float):
+async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: UploadFile, deposit_file: UploadFile,
+                                         cb_date: str = Form(...), cb_rate: float = Form(...), cb_deposit: float = Form(...)):
+    logger.info("add_new_uzonia_calculation | Starting calculation with cb_date=%s, cb_rate=%s, cb_deposit=%s", cb_date,
+                cb_rate, cb_deposit)
+
     if not repo_n_file or not repo_m_file or not deposit_file or not cb_date or not cb_rate or not cb_deposit:
+        logger.warning("add_new_uzonia_calculation | Missing required parameters")
         raise HTTPException(status_code=404, detail="❌ Not enough data!")
 
     try:
-        cb_date = datetime.strptime(cb_date, "%d.%m.%Y")
+        cb_date = date.fromisoformat(cb_date)
         cb_rate = float(cb_rate)
         cb_deposit = float(cb_deposit)
+        logger.info("add_new_uzonia_calculation | CB data parsed successfully: cb_date=%s, cb_rate=%s, cb_deposit=%s",
+                    cb_date, cb_rate, cb_deposit)
     except Exception as e:
+        logger.error("add_new_uzonia_calculation | Error parsing CB input data: %s", str(e))
         print(e)
         raise HTTPException(status_code=404, detail="Wrong CB Input data!")
 
     try:
-        repo_n_file_data = pd.read_excel(repo_n_file)
+        logger.info("add_new_uzonia_calculation | Reading repo_n_file...")
+        repo_n_file_content = await repo_n_file.read()
+        repo_n_file_data = pd.read_excel(io.BytesIO(repo_n_file_content))  # wrap bytes in BytesIO
         columns = ["Номер заявки", "Время подачи", "Время исполнения второй части", "Направление",
                    "Инвестор", "Часть РЕПО", "Блокировка", "Срок РЕПО (днях)", "Ставка РЕПО (в % годовых)",
                    "Количество (в шт.)", "Сумма РЕПО (в сумах)", "Сумма обр. выкупа (в сумах)"]
-        repo_n_file_data = repo_n_file_data.columns.str.strip()
-        missing_columns = [expected_column for expected_column in columns if expected_column not in repo_n_file_data.columns]
+        repo_n_file_data.columns = repo_n_file_data.columns.str.strip()
+        missing_columns = [expected_column for expected_column in columns if
+                           expected_column not in repo_n_file_data.columns]
         if missing_columns:
+            logger.warning("add_new_uzonia_calculation | Missing columns in repo_n_file: %s", missing_columns)
             raise HTTPException(status_code=400, detail=f"Missing columns: {missing_columns}")
+        logger.info("add_new_uzonia_calculation | repo_n_file read successfully with %d rows", len(repo_n_file_data))
     except Exception as e:
+        logger.error("add_new_uzonia_calculation | Error with repo_n_file: %s", str(e))
         print(e)
         raise HTTPException(status_code=404, detail="❌ Error with the repo N file!")
 
-
     try:
-        repo_m_file_data = pd.read_excel(repo_m_file)
+        logger.info("add_new_uzonia_calculation | Reading repo_m_file...")
+        repo_m_file_content = await repo_m_file.read()
+        repo_m_file_data = pd.read_excel(io.BytesIO(repo_m_file_content))  # wrap bytes in BytesIO
         columns = ["Номер заявки", "Время подачи", "Время исполнения второй части", "Направление",
                    "Дилер/Инвестор", "Код расчётов (дней)", "Срок РЕПО (днях)", "Ставка РЕПО (в % годовых)",
                    "Количество (в шт.)", "Сумма РЕПО (в сумах)", "Сумма обр. выкупа (в сумах)"]
-        repo_m_file_data = repo_m_file_data.columns.str.strip()
-        missing_columns = [expected_column for expected_column in columns if expected_column not in repo_m_file_data.columns]
+        repo_m_file_data.columns = repo_m_file_data.columns.str.strip()
+        missing_columns = [expected_column for expected_column in columns if
+                           expected_column not in repo_m_file_data.columns]
         if missing_columns:
+            logger.warning("add_new_uzonia_calculation | Missing columns in repo_m_file: %s", missing_columns)
             raise HTTPException(status_code=400, detail=f"Missing columns: {missing_columns}")
+        logger.info("add_new_uzonia_calculation | repo_m_file read successfully with %d rows", len(repo_m_file_data))
     except Exception as e:
+        logger.error("add_new_uzonia_calculation | Error with repo_m_file: %s", str(e))
         print(e)
         raise HTTPException(status_code=404, detail="❌ Error with the repo M file!")
 
-
     try:
-        deposit_file_data = pd.read_excel(deposit_file)
+        logger.info("add_new_uzonia_calculation | Reading deposit_file...")
+        deposit_file_content = await deposit_file.read()
+        deposit_file_data = pd.read_excel(io.BytesIO(deposit_file_content))  # wrap bytes in BytesIO
         columns = ["Код сделки", "ОперДата", "Банк(Размещение)", "Банк(Привлечение)",
                    "Валюта", "Сумма", "Процентная ставка", "Дата возврата", "Срок возврата (в днях)"]
-        deposit_file_data = deposit_file_data.columns.str.strip()
-        missing_columns = [expected_column for expected_column in columns if expected_column not in deposit_file_data.columns]
+        deposit_file_data.columns = deposit_file_data.columns.str.strip()
+        missing_columns = [expected_column for expected_column in columns if
+                           expected_column not in deposit_file_data.columns]
         if missing_columns:
+            logger.warning("add_new_uzonia_calculation | Missing columns in deposit_file: %s", missing_columns)
             raise HTTPException(status_code=400, detail=f"Missing columns: {missing_columns}")
+        logger.info("add_new_uzonia_calculation | deposit_file read successfully with %d rows", len(deposit_file_data))
     except Exception as e:
+        logger.error("add_new_uzonia_calculation | Error with deposit_file: %s", str(e))
         print(e)
         raise HTTPException(status_code=404, detail="❌ Error with the Deposit file!")
 
+    logger.info("add_new_uzonia_calculation | Checking if data already exists for cb_date=%s", cb_date)
     check_existence = await get_single_uzonia_data(uzonia_date=cb_date)
     if check_existence:
+        logger.warning("add_new_uzonia_calculation | Data already exists for cb_date=%s", cb_date)
         raise HTTPException(status_code=404, detail="Such data already exists!")
 
+    logger.info("add_new_uzonia_calculation | Fetching holiday data...")
     holidays_data = await get_all_holiday_data()
     holidays_list = []
     for holiday in holidays_data:
         holidays_list.append(holiday['holiday_date'])
+    logger.info("add_new_uzonia_calculation | Retrieved %d holidays", len(holidays_list))
+    if cb_date in holidays_list:
+        logger.info("add_new_uzonia_calculation | Holiday date %d holidays", cb_date)
+        raise HTTPException(status_code=404, detail="This is holiday date!")
 
-    file_id = uuid.uuid4().hex[:12]
-
+    file_id = uuid4().hex[:12]
+    logger.info("add_new_uzonia_calculation | Generated file_id=%s", file_id)
 
 
     # ------------------------------------------------------------------------------------------------------------------
     # Processing the first Repo N file
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Processing Repo N file...")
 
     repo_n_file_data['Номер заявки'] = repo_n_file_data['Номер заявки'].astype(str).str.strip()
     repo_n_file_data['Время подачи'] = pd.to_datetime(repo_n_file_data['Время подачи'], format='%d/%m/%Y %H:%M:%S')
-    repo_n_file_data['Время исполнения второй части'] = pd.to_datetime(repo_n_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S')
+    repo_n_file_data['Время исполнения второй части'] = pd.to_datetime(
+        repo_n_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S')
     repo_n_file_data['Направление'] = repo_n_file_data['Направление'].astype(str).str.strip()
     repo_n_file_data['Инвестор'] = repo_n_file_data['Инвестор'].astype(str).str.strip()
     repo_n_file_data['Срок РЕПО (днях)'] = repo_n_file_data['Срок РЕПО (днях)'].astype(str).str.strip()
     repo_n_file_data['Ставка РЕПО (в % годовых)'] = repo_n_file_data['Ставка РЕПО (в % годовых)'].astype(float)
-    repo_n_file_data['Сумма РЕПО (в сумах)'] = repo_n_file_data['Сумма РЕПО (в сумах)'].astype(str).str.replace[',', ''].astype(float)
-    repo_n_file_data['Сумма обр. выкупа (в сумах)'] = repo_n_file_data['Сумма обр. выкупа (в сумах)'].astype(str).str.replace[',', ''].astype(float)
+    repo_n_file_data['Сумма РЕПО (в сумах)'] = repo_n_file_data['Сумма РЕПО (в сумах)'].astype(str).str.replace(',', '', regex=False).astype(float)
+    repo_n_file_data['Сумма обр. выкупа (в сумах)'] = repo_n_file_data['Сумма обр. выкупа (в сумах)'].astype(str).str.replace(',', '').astype(float)
 
     invalid_mask = ~repo_n_file_data['Инвестор'].isin(bank_names)
     bad_ids = repo_n_file_data.loc[invalid_mask, 'Номер заявки']
+    logger.info("add_new_uzonia_calculation | Removing %d invalid investor entries from Repo N", len(bad_ids))
     repo_n_file_data = repo_n_file_data[~repo_n_file_data['Номер заявки'].isin(bad_ids)].reset_index(drop=True)
-
 
     outdated_rows = []
     for index, row in repo_n_file_data.iterrows():
@@ -540,32 +576,38 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             outdated_rows.append(index)
 
         # 3. If we reach here → gap is invalid, handle it
+        logger.warning("add_new_uzonia_calculation | Repo N row %d has invalid gap: %d days (%s → %s)", index,
+                       diff_days, date_in, date_out)
         print(f"Row {index} has invalid gap: {diff_days} days ({date_in} → {date_out})")
 
     removed_rows = repo_n_file_data.loc[outdated_rows]
+    logger.info("add_new_uzonia_calculation | Removing %d rows due to invalid gaps from Repo N", len(outdated_rows))
     repo_n_file_data = repo_n_file_data.drop(index=outdated_rows).reset_index(drop=True)
 
     print("Removed rows due to invalid gaps:")
     print(removed_rows)
 
 
-
     # ------------------------------------------------------------------------------------------------------------------
     # Processing the first Repo M file
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Processing Repo M file...")
 
-    repo_n_file_data['Номер заявки'] = repo_n_file_data['Номер заявки'].astype(str).str.strip()
-    repo_n_file_data['Время подачи'] = pd.to_datetime(repo_n_file_data['Время подачи'], format='%d/%m/%Y %H:%M:%S')
-    repo_n_file_data['Время исполнения второй части'] = pd.to_datetime(repo_n_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S')
-    repo_n_file_data['Направление'] = repo_n_file_data['Направление'].astype(str).str.strip()
-    repo_n_file_data['Дилер/Инвестор'] = repo_n_file_data['Инвестор'].astype(str).str.strip()
-    repo_n_file_data['Срок РЕПО (днях)'] = repo_n_file_data['Срок РЕПО (днях)'].astype(str).str.strip()
-    repo_n_file_data['Ставка РЕПО (в % годовых)'] = repo_n_file_data['Ставка РЕПО (в % годовых)'].astype(float)
-    repo_n_file_data['Сумма РЕПО (в сумах)'] = repo_n_file_data['Сумма РЕПО (в сумах)'].astype(str).str.replace[',', ''].astype(float)
-    repo_n_file_data['Сумма обр. выкупа (в сумах)'] = repo_n_file_data['Сумма обр. выкупа (в сумах)'].astype(str).str.replace[',', ''].astype(float)
+    repo_m_file_data['Номер заявки'] = repo_m_file_data['Номер заявки'].astype(str).str.strip()
+    repo_m_file_data['Время подачи'] = pd.to_datetime(repo_m_file_data['Время подачи'], format='%d/%m/%Y %H:%M:%S')
+    repo_m_file_data['Время исполнения второй части'] = pd.to_datetime(
+        repo_m_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S')
+    repo_m_file_data['Направление'] = repo_m_file_data['Направление'].astype(str).str.strip()
+    repo_m_file_data['Дилер/Инвестор'] = repo_m_file_data['Дилер/Инвестор'].astype(str).str.strip()
+    repo_m_file_data['Срок РЕПО (днях)'] = repo_m_file_data['Срок РЕПО (днях)'].astype(str).str.strip()
+    repo_m_file_data['Ставка РЕПО (в % годовых)'] = repo_m_file_data['Ставка РЕПО (в % годовых)'].astype(float)
+    repo_m_file_data['Сумма РЕПО (в сумах)'] = repo_m_file_data['Сумма РЕПО (в сумах)'].astype(str).str.replace(',', '', regex=False).astype(float)
+    repo_m_file_data['Сумма обр. выкупа (в сумах)'] = \
+    repo_m_file_data['Сумма обр. выкупа (в сумах)'].astype(str).str.replace(',', '').astype(float)
 
     invalid_mask = ~repo_m_file_data['Дилер/Инвестор'].isin(bank_names)
     bad_ids = repo_m_file_data.loc[invalid_mask, 'Номер заявки']
+    logger.info("add_new_uzonia_calculation | Removing %d invalid dealer/investor entries from Repo M", len(bad_ids))
     repo_m_file_data = repo_m_file_data[~repo_m_file_data['Номер заявки'].isin(bad_ids)].reset_index(drop=True)
 
     outdated_rows = []
@@ -595,19 +637,22 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             outdated_rows.append(index)
 
         # 3. If we reach here → gap is invalid, handle it
+        logger.warning("add_new_uzonia_calculation | Repo M row %d has invalid gap: %d days (%s → %s)", index,
+                       diff_days, date_in, date_out)
         print(f"Row {index} has invalid gap: {diff_days} days ({date_in} → {date_out})")
 
     removed_rows = repo_m_file_data.loc[outdated_rows]
+    logger.info("add_new_uzonia_calculation | Removing %d rows due to invalid gaps from Repo M", len(outdated_rows))
     repo_m_file_data = repo_m_file_data.drop(index=outdated_rows).reset_index(drop=True)
 
     print("Removed rows due to invalid gaps:")
     print(removed_rows)
 
 
-
     # ------------------------------------------------------------------------------------------------------------------
     # Processing the Deposit file
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Processing Deposit file...")
 
     # invalid_mask = ~repo_m_file_data['Банк(Размещение)'].isin(bank_names)
     # bad_ids = repo_m_file_data.loc[invalid_mask, 'Номер заявки']
@@ -649,22 +694,26 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             outdated_rows.append(index)
 
         # 3. If we reach here → gap is invalid, handle it
+        logger.warning("add_new_uzonia_calculation | Deposit row %d has invalid gap: %d days (%s → %s)", index,
+                       diff_days, date_in, date_out)
         print(f"Row {index} has invalid gap: {diff_days} days ({date_in} → {date_out})")
 
     removed_rows = deposit_file_data.loc[outdated_rows]
+    logger.info("add_new_uzonia_calculation | Removing %d rows due to invalid gaps from Deposit", len(outdated_rows))
     deposit_file_data = deposit_file_data.drop(index=outdated_rows).reset_index(drop=True)
 
     print("Removed rows due to invalid gaps:")
     print(removed_rows)
 
 
-
     # ------------------------------------------------------------------------------------------------------------------
     # Calculating Repo N and M
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Calculating Repo N and M data...")
 
     repos_data_list = []
     applications_list_n = repo_n_file_data['Номер заявки'].astype(str).str.strip().unique().tolist()
+    logger.info("add_new_uzonia_calculation | Found %d unique applications in Repo N", len(applications_list_n))
     print(f'Number of applications: {applications_list_n}')
     for application in applications_list_n:
         for index, row in repo_n_file_data.iterrows():
@@ -674,6 +723,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     print(f'Repo data list: {repos_data_list}')
 
     applications_list_m = repo_m_file_data['Номер заявки'].astype(str).str.strip().unique().tolist()
+    logger.info("add_new_uzonia_calculation | Found %d unique applications in Repo M", len(applications_list_m))
     print(f'Number of applications: {applications_list_m}')
     for application in applications_list_m:
         for index, row in repo_m_file_data.iterrows():
@@ -686,6 +736,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     total_value = 0
     for row_data in repos_data_list:
         total_value += row_data[2]
+    logger.info("add_new_uzonia_calculation | Total value after combining repos: %s", total_value)
 
 
     # ------------------------------------------------------------------------
@@ -693,12 +744,18 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     # ------------------------------------------------------------------------
     uzonia_calculation_way = 0
     if total_value >= 500000000000 and len(repos_data_list) >= 5:
+        logger.info("add_new_uzonia_calculation | Using calculation way 1 (total_value=%s, repos_count=%d)",
+                    total_value, len(repos_data_list))
         ten_percent_value = (total_value / 100) * 10
         day_uzonia = await calculate_day_uzonia(ten_percent_value, repos_data_list)
         uzonia_calculation_way = 1
         print(f'Calculate day uzonia: {day_uzonia} with 1 way')
     else:
+        logger.info(
+            "add_new_uzonia_calculation | Falling back to calculation way 2 or 3 (total_value=%s, repos_count=%d)",
+            total_value, len(repos_data_list))
         applications_deposit = deposit_file_data['Код сделки'].astype(str).str.strip().unique().tolist()
+        logger.info("add_new_uzonia_calculation | Found %d unique deposit applications", len(applications_deposit))
         print(f'Number of applications: {applications_deposit}')
         for application in applications_deposit:
             for index, row in deposit_file_data.iterrows():
@@ -712,21 +769,29 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         total_value = 0
         for row_data in repos_data_list:
             total_value += row_data[2]
+        logger.info("add_new_uzonia_calculation | Total value after adding deposits: %s", total_value)
 
-    # ------------------------------------------------------------------------
-    # Calculating second way
-    # ------------------------------------------------------------------------
+
+        # ------------------------------------------------------------------------
+        # Calculating second way
+        # ------------------------------------------------------------------------
         if total_value >= 500000000000:
+            logger.info("add_new_uzonia_calculation | Using calculation way 2 (total_value=%s)", total_value)
             ten_percent_value = (total_value / 100) * 10
             day_uzonia = await calculate_day_uzonia(ten_percent_value, repos_data_list)
             uzonia_calculation_way = 2
             print(f'Calculate day uzonia: {day_uzonia} with 2 way')
         else:
-    # ------------------------------------------------------------------------
-    # Calculating third way
-    # ------------------------------------------------------------------------
+
+            # ------------------------------------------------------------------------
+            # Calculating third way
+            # ------------------------------------------------------------------------
+            logger.info("add_new_uzonia_calculation | Using calculation way 3 (total_value=%s, cb_deposit=%s)",
+                        total_value, cb_deposit)
             cb_deposit_10_percent = (cb_deposit / 100) * 10
             random_application_number = random.randint(100000, 999999)
+            logger.info("add_new_uzonia_calculation | Adding random application %d with rate=%s and amount=%s",
+                        random_application_number, cb_rate, cb_deposit_10_percent)
             repos_data_list.append([random_application_number, cb_rate, cb_deposit_10_percent])
 
             # Sorting by rate (ascending)
@@ -739,29 +804,37 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             print(f'Calculate day uzonia: {day_uzonia} with 3 way')
 
     final_uzonia_data_dict = {'day_uzonia': day_uzonia, 'uzonia_calculation_way': uzonia_calculation_way}
+    logger.info("add_new_uzonia_calculation | Calculated day_uzonia=%s using way %d", day_uzonia,
+                uzonia_calculation_way)
+
     days_n_uzonias = [7, 30, 90, 180]
     for day_n_uzonia in days_n_uzonias:
+        logger.info("add_new_uzonia_calculation | Calculating %d-day uzonia", day_n_uzonia)
         day_n_uzonias_list = await get_n_uzonia_data(days_number=day_n_uzonia)
         total_multiplied_uzonia_value = 0
         for day_n_uzonia_value in day_n_uzonias_list:
             total_multiplied_uzonia_value *= (1 + (day_n_uzonia_value / (365 * 100)))
         total_multiplied_uzonia_value -= 1
-        n_day_final_uzonia_value = (total_multiplied_uzonia_value * (365 /day_n_uzonia) * 100)
+        n_day_final_uzonia_value = (total_multiplied_uzonia_value * (365 / day_n_uzonia) * 100)
         final_uzonia_data_dict[f'day_{day_n_uzonia}_uzonia'] = n_day_final_uzonia_value
         print(f'Calculated {day_n_uzonia} uzonia: {n_day_final_uzonia_value}')
+        logger.info("add_new_uzonia_calculation | Calculated %d-day uzonia: %s", day_n_uzonia, n_day_final_uzonia_value)
+
     print(f'Final Uzonia: {final_uzonia_data_dict}')
+    logger.info("add_new_uzonia_calculation | Final uzonia data dictionary created")
 
     uzonia_index = (1 + (day_uzonia / (365 * 100)))
     final_uzonia_data_dict['index'] = uzonia_index
     final_uzonia_data_dict['uzonia_date'] = cb_date
-
+    logger.info("add_new_uzonia_calculation | Calculated index=%s for date=%s", uzonia_index, cb_date)
 
 
     # ------------------------------------------------------------------------------------------------------------------
     # Adding Uzonia to the DB
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Adding uzonia data to database for date=%s", cb_date)
 
-    result = await add_new_uzonia_data(file_id=file_id,rate=cb_rate, uzonia=final_uzonia_data_dict['day_uzonia'],
+    result = await add_new_uzonia_data(file_id=file_id, rate=cb_rate, uzonia=final_uzonia_data_dict['day_uzonia'],
                                        day_7_uzonia=final_uzonia_data_dict['day_7_uzonia'],
                                        day_30_uzonia=final_uzonia_data_dict['day_30_uzonia'],
                                        day_90_uzonia=final_uzonia_data_dict['day_90_uzonia'],
@@ -769,80 +842,125 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
                                        index=final_uzonia_data_dict['index'],
                                        uzonia_date=final_uzonia_data_dict['uzonia_date'])
     if not result:
+        logger.error("add_new_uzonia_calculation | Failed to add uzonia data to database for date=%s", cb_date)
         raise HTTPException(status_code=404, detail="❌ Could not add new uzonia data!")
-
+    logger.info("add_new_uzonia_calculation | Successfully added uzonia data to database for date=%s", cb_date)
 
 
     # ------------------------------------------------------------------------------------------------------------------
     # Gathering Uzonia Data
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Gathering previous uzonia data...")
 
     from_date = date(cb_date.year - 1, 1, 1)
+    logger.info("add_new_uzonia_calculation | Fetching filtered image data from %s", from_date)
     filtered_image_data = await get_date_filtered_rate_uzonia(from_date=from_date)
     if not filtered_image_data:
+        logger.error("add_new_uzonia_calculation | Failed to get previous data from %s", from_date)
         raise HTTPException(status_code=404, detail="❌ Could not get previous data")
+    logger.info("add_new_uzonia_calculation | Retrieved %d records for filtered image data", len(filtered_image_data))
 
+    logger.info("add_new_uzonia_calculation | Fetching time period uzonia data for date=%s", cb_date)
     time_period_uzonia_data = await get_time_period_uzonia_data(cb_date=cb_date)
     if not time_period_uzonia_data:
+        logger.error("add_new_uzonia_calculation | Failed to get previous uzonia data for date=%s", cb_date)
         raise HTTPException(status_code=404, detail="❌ Could not get previous uzonia data")
+    logger.info("add_new_uzonia_calculation | Retrieved %d records for time period data", len(time_period_uzonia_data))
 
+    logger.info("add_new_uzonia_calculation | Building uzonia table data...")
     final_uzonia_table_data_dict = await finding_time_uzonia_calculations_func(cb_date=cb_date,
                                                                                db_time_data=time_period_uzonia_data,
                                                                                current_uzonia_calculations_dict=final_uzonia_data_dict)
 
     if not final_uzonia_table_data_dict:
+        logger.error("add_new_uzonia_calculation | Failed to build uzonia table data for date=%s", cb_date)
         raise HTTPException(status_code=404, detail="❌ Could not build uzonia table data")
+    logger.info("add_new_uzonia_calculation | Uzonia table data built successfully")
 
 
     # ------------------------------------------------------------------------------------------------------------------
     # Adding File Path to the DB
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Adding file path to database for file_id=%s", file_id)
     file_uploaded = await add_new_uzonia_upload(file_id=file_id, file_path=f'data/output_data/{file_id}/',
                                                 status='progress', file_date=cb_date)
     if not file_uploaded:
+        logger.error("add_new_uzonia_calculation | Failed to add file to database for file_id=%s", file_id)
         raise HTTPException(status_code=404, detail="❌ Could not add file to the DB")
-
+    logger.info("add_new_uzonia_calculation | File path added successfully for file_id=%s", file_id)
 
 
     # ------------------------------------------------------------------------------------------------------------------
     # Drawing Image
     # ------------------------------------------------------------------------------------------------------------------
-
+    logger.info("add_new_uzonia_calculation | Drawing graph for file_id=%s", file_id)
     output_image_file_path = f'data/output_data/{file_id}/{file_id}.png'
-    image_file_path = draw_graph_data(filtered_image_data, background_path="data/input_data/image/background_image.png", output_path=output_image_file_path)
+    image_file_path = draw_graph_data(filtered_image_data, background_path="data/input_data/image/background_image.png",
+                                      output_path=output_image_file_path)
     if not image_file_path:
+        logger.error("add_new_uzonia_calculation | Failed to draw graph for file_id=%s", file_id)
         raise HTTPException(status_code=404, detail="❌ Could not draw graph")
+    logger.info("add_new_uzonia_calculation | Graph drawn successfully at %s", image_file_path)
 
-    image_file_path = draw_table_data(final_uzonia_table_data_dict, input_path=image_file_path, output_path=image_file_path)
+    logger.info("add_new_uzonia_calculation | Drawing table data for file_id=%s", file_id)
+    image_file_path = draw_table_data(final_uzonia_table_data_dict, input_path=image_file_path,
+                                      output_path=image_file_path)
     if not image_file_path:
+        logger.error("add_new_uzonia_calculation | Failed to draw table for file_id=%s", file_id)
         raise HTTPException(status_code=404, detail="❌ Could not draw table")
-
+    logger.info("add_new_uzonia_calculation | Table data drawn successfully at %s", image_file_path)
 
 
     # ------------------------------------------------------------------------------------------------------------------
     # Building Excel File
     # ------------------------------------------------------------------------------------------------------------------
-
+    logger.info("add_new_uzonia_calculation | Fetching all uzonia data history...")
     all_uzonia_data_history = await get_all_uzonia_data()
     if not all_uzonia_data_history:
+        logger.error("add_new_uzonia_calculation | Failed to get all uzonia data history")
         raise HTTPException(status_code=404, detail="❌ Could not get all uzonia data")
+    logger.info("add_new_uzonia_calculation | Retrieved %d records from uzonia data history",
+                len(all_uzonia_data_history))
 
-    excel_file_path = export_uzonia_to_excel(data=all_uzonia_data_history, output_path=f'data/output_data/{file_id}/{file_id}.xlsx')
+    logger.info("add_new_uzonia_calculation | Building Excel file for file_id=%s", file_id)
+    excel_file_path = export_uzonia_to_excel(data=all_uzonia_data_history,
+                                             output_path=f'data/output_data/{file_id}/{file_id}.xlsx')
     if not excel_file_path:
+        logger.error("add_new_uzonia_calculation | Failed to build Excel file for file_id=%s", file_id)
         raise HTTPException(status_code=404, detail="❌ Could not build excel file")
+    logger.info("add_new_uzonia_calculation | Excel file built successfully at %s", excel_file_path)
 
 
     # ------------------------------------------------------------------------------------------------------------------
     # Building Excel File
     # ------------------------------------------------------------------------------------------------------------------
-
-    zip_folder_path = zip_and_delete_folder(folder_path=f'data/output_data/{file_id}/', zip_name=f'data/output_data/{file_id}/')
+    logger.info("add_new_uzonia_calculation | Zipping folder for file_id=%s", file_id)
+    zip_folder_path = zip_and_delete_folder(folder_path=f'data/output_data/{file_id}/',
+                                            zip_name=f'data/output_data/{file_id}/')
     if not zip_folder_path:
+        logger.error("add_new_uzonia_calculation | Failed to zip folder for file_id=%s", file_id)
         raise HTTPException(status_code=404, detail="❌ Could not zip folder")
+    logger.info("add_new_uzonia_calculation | Folder zipped successfully at %s", zip_folder_path)
+
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Updating File Status
+    # ------------------------------------------------------------------------------------------------------------------
+
+    updated_file_status = await edit_uzonia_upload_status(status='finished', finished_at=datetime.now(tz), file_id=file_id)
+    if not updated_file_status:
+        logger.error("add_new_uzonia_calculation | Failed to update file status for file_id=%s", file_id)
+        raise HTTPException(status_code=404, detail="❌ Could not update file status")
+    logger.info("add_new_uzonia_calculation | Updated file status successfully for file_id=%s, date=%s", file_id,
+                cb_date)
+
+
 
     # ------------------------------------------------------------------------------------------------------------------
     # Returning Everything
     # ------------------------------------------------------------------------------------------------------------------
+    logger.info("add_new_uzonia_calculation | Calculation completed successfully for file_id=%s, date=%s", file_id,
+                cb_date)
 
     return {
         'file_id': file_id,
@@ -858,7 +976,6 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         'filename': f"{file_id}.zip",
         'media_type': 'application/zip'
     }
-
 
 
 
