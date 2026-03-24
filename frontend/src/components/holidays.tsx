@@ -464,8 +464,8 @@ const HolidaysPage = () => {
       </header>
 
       {/* ═══ MAIN ═══ */}
-      <main style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', padding: '22px 24px', background: '#f8fafc', boxSizing: 'border-box' }}>
-        <div style={{ width: '100%', maxWidth: '1600px' }}>
+      <main style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', padding: '22px 24px', background: '#f8fafc', boxSizing: 'border-box', alignItems: 'center' }}>
+        <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto' }}>
 
           {/* Stats — 5 cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px', marginBottom: '16px' }}>

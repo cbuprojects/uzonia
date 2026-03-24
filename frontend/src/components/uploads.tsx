@@ -357,7 +357,7 @@ const UzoniaUploadsPage = () => {
       </header>
 
       {/* ═══ MAIN ═══ */}
-      <main style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', padding: '22px 24px', background: '#f8fafc', boxSizing: 'border-box' }}>
+      <main style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', padding: '22px 24px', background: '#f8fafc', boxSizing: 'border-box', alignItems: 'center' }}>
         <div style={{ width: '100%', maxWidth: '1600px' }}>
 
           {/* ── Stats — 4 cards ── */}

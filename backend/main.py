@@ -528,15 +528,15 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     logger.info("add_new_uzonia_calculation | Generated file_id=%s", file_id)
 
 
+
     # ------------------------------------------------------------------------------------------------------------------
     # Processing the first Repo N file
     # ------------------------------------------------------------------------------------------------------------------
     logger.info("add_new_uzonia_calculation | Processing Repo N file...")
 
     repo_n_file_data['Номер заявки'] = repo_n_file_data['Номер заявки'].astype(str).str.strip()
-    repo_n_file_data['Время подачи'] = pd.to_datetime(repo_n_file_data['Время подачи'], format='%d/%m/%Y %H:%M:%S')
-    repo_n_file_data['Время исполнения второй части'] = pd.to_datetime(
-        repo_n_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S')
+    repo_n_file_data['Время подачи'] = pd.to_datetime(repo_n_file_data['Время подачи'], format='%d/%m/%Y %H:%M:%S').dt.date
+    repo_n_file_data['Время исполнения второй части'] = pd.to_datetime(repo_n_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S').dt.date
     repo_n_file_data['Направление'] = repo_n_file_data['Направление'].astype(str).str.strip()
     repo_n_file_data['Инвестор'] = repo_n_file_data['Инвестор'].astype(str).str.strip()
     repo_n_file_data['Срок РЕПО (днях)'] = repo_n_file_data['Срок РЕПО (днях)'].astype(str).str.strip()
@@ -550,33 +550,50 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     repo_n_file_data = repo_n_file_data[~repo_n_file_data['Номер заявки'].isin(bad_ids)].reset_index(drop=True)
 
     outdated_rows = []
-    for index, row in repo_n_file_data.iterrows():
+    for index, row in repo_m_file_data.iterrows():
         date_in = row['Время подачи']
         date_out = row['Время исполнения второй части']
         diff_days = (date_out - date_in).days
 
-        # 1. Normal 1-day gap → OK
-        if diff_days == 1:
+        # ❌ invalid if same day or negative
+        if diff_days <= 0:
+            outdated_rows.append(index)
             continue
 
-        # 2. Check if gap is caused by weekend/bank holiday
-        current = date_in
+        # ✅ Case 1: exactly 1 day
+        if diff_days == 1:
+            if date_in not in holidays_list and date_out not in holidays_list:
+                continue
+            else:
+                outdated_rows.append(index)
+                continue
+
+        # ✅ Case 2: gap > 1 → check intermediate days
         valid_gap = True
+        current = date_in
+
         while current < date_out:
             current += timedelta(days=1)
 
-            # If current is weekday AND not a bank holiday → gap invalid
-            if current.weekday() < 5 and current not in holidays_list:
-                valid_gap = False
-                break  # no need to check further
+            # skip weekends
+            if current.weekday() >= 5:
+                continue
 
-        if valid_gap:
-            continue  # skip, gap is fine
-        else:
+            # if weekday and NOT holiday → invalid
+            if current not in holidays_list:
+                valid_gap = False
+                break
+
+        if not valid_gap:
             outdated_rows.append(index)
+            logger.warning(
+                "Repo M row %d invalid gap: %d days (%s → %s)",
+                index, diff_days, date_in, date_out
+            )
+            print(f"Row {index} invalid gap: {diff_days} days ({date_in} → {date_out})")
 
         # 3. If we reach here → gap is invalid, handle it
-        logger.warning("add_new_uzonia_calculation | Repo N row %d has invalid gap: %d days (%s → %s)", index,
+        logger.warning("add_new_uzonia_calculation | Repo M row %d has invalid gap: %d days (%s → %s)", index,
                        diff_days, date_in, date_out)
         print(f"Row {index} has invalid gap: {diff_days} days ({date_in} → {date_out})")
 
@@ -588,15 +605,15 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     print(removed_rows)
 
 
+
     # ------------------------------------------------------------------------------------------------------------------
     # Processing the first Repo M file
     # ------------------------------------------------------------------------------------------------------------------
     logger.info("add_new_uzonia_calculation | Processing Repo M file...")
 
     repo_m_file_data['Номер заявки'] = repo_m_file_data['Номер заявки'].astype(str).str.strip()
-    repo_m_file_data['Время подачи'] = pd.to_datetime(repo_m_file_data['Время подачи'], format='%d/%m/%Y %H:%M:%S')
-    repo_m_file_data['Время исполнения второй части'] = pd.to_datetime(
-        repo_m_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S')
+    repo_m_file_data['Время подачи'] = pd.to_datetime(repo_m_file_data['Время подачи'], format='%d/%m/%Y %H:%M:%S').dt.date
+    repo_m_file_data['Время исполнения второй части'] = pd.to_datetime(repo_m_file_data['Время исполнения второй части'], format='%d/%m/%Y %H:%M:%S').dt.date
     repo_m_file_data['Направление'] = repo_m_file_data['Направление'].astype(str).str.strip()
     repo_m_file_data['Дилер/Инвестор'] = repo_m_file_data['Дилер/Инвестор'].astype(str).str.strip()
     repo_m_file_data['Срок РЕПО (днях)'] = repo_m_file_data['Срок РЕПО (днях)'].astype(str).str.strip()
@@ -616,25 +633,42 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         date_out = row['Время исполнения второй части']
         diff_days = (date_out - date_in).days
 
-        # 1. Normal 1-day gap → OK
-        if diff_days == 1:
+        # ❌ invalid if same day or negative
+        if diff_days <= 0:
+            outdated_rows.append(index)
             continue
 
-        # 2. Check if gap is caused by weekend/bank holiday
-        current = date_in
+        # ✅ Case 1: exactly 1 day
+        if diff_days == 1:
+            if date_in not in holidays_list and date_out not in holidays_list:
+                continue
+            else:
+                outdated_rows.append(index)
+                continue
+
+        # ✅ Case 2: gap > 1 → check intermediate days
         valid_gap = True
+        current = date_in
+
         while current < date_out:
             current += timedelta(days=1)
 
-            # If current is weekday AND not a bank holiday → gap invalid
-            if current.weekday() < 5 and current not in holidays_list:
-                valid_gap = False
-                break  # no need to check further
+            # skip weekends
+            if current.weekday() >= 5:
+                continue
 
-        if valid_gap:
-            continue  # skip, gap is fine
-        else:
+            # if weekday and NOT holiday → invalid
+            if current not in holidays_list:
+                valid_gap = False
+                break
+
+        if not valid_gap:
             outdated_rows.append(index)
+            logger.warning(
+                "Repo M row %d invalid gap: %d days (%s → %s)",
+                index, diff_days, date_in, date_out
+            )
+            print(f"Row {index} invalid gap: {diff_days} days ({date_in} → {date_out})")
 
         # 3. If we reach here → gap is invalid, handle it
         logger.warning("add_new_uzonia_calculation | Repo M row %d has invalid gap: %d days (%s → %s)", index,
@@ -647,6 +681,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
 
     print("Removed rows due to invalid gaps:")
     print(removed_rows)
+
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -673,30 +708,42 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         date_out = row['Дата возврата']
         diff_days = (date_out - date_in).days
 
-        # 1. Normal 1-day gap → OK
-        if diff_days == 1:
+        # ❌ invalid if same day or negative
+        if diff_days <= 0:
+            outdated_rows.append(index)
             continue
 
-        # 2. Check if gap is caused by weekend/bank holiday
-        current = date_in
+        # ✅ Case 1: exactly 1 day
+        if diff_days == 1:
+            if date_in not in holidays_list and date_out not in holidays_list:
+                continue
+            else:
+                outdated_rows.append(index)
+                continue
+
+        # ✅ Case 2: gap > 1 → check intermediate days
         valid_gap = True
+        current = date_in
+
         while current < date_out:
             current += timedelta(days=1)
 
-            # If current is weekday AND not a bank holiday → gap invalid
-            if current.weekday() < 5 and current not in holidays_list:
+            # skip weekends
+            if current.weekday() >= 5:
+                continue
+
+            # if weekday and NOT holiday → invalid
+            if current not in holidays_list:
                 valid_gap = False
-                break  # no need to check further
+                break
 
-        if valid_gap:
-            continue  # skip, gap is fine
-        else:
+        if not valid_gap:
             outdated_rows.append(index)
-
-        # 3. If we reach here → gap is invalid, handle it
-        logger.warning("add_new_uzonia_calculation | Deposit row %d has invalid gap: %d days (%s → %s)", index,
-                       diff_days, date_in, date_out)
-        print(f"Row {index} has invalid gap: {diff_days} days ({date_in} → {date_out})")
+            logger.warning(
+                "Repo M row %d invalid gap: %d days (%s → %s)",
+                index, diff_days, date_in, date_out
+            )
+            print(f"Row {index} invalid gap: {diff_days} days ({date_in} → {date_out})")
 
     removed_rows = deposit_file_data.loc[outdated_rows]
     logger.info("add_new_uzonia_calculation | Removing %d rows due to invalid gaps from Deposit", len(outdated_rows))
@@ -704,6 +751,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
 
     print("Removed rows due to invalid gaps:")
     print(removed_rows)
+
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -739,6 +787,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     logger.info("add_new_uzonia_calculation | Total value after combining repos: %s", total_value)
 
 
+
     # ------------------------------------------------------------------------
     # Calculating first way
     # ------------------------------------------------------------------------
@@ -770,6 +819,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         for row_data in repos_data_list:
             total_value += row_data[2]
         logger.info("add_new_uzonia_calculation | Total value after adding deposits: %s", total_value)
+
 
 
         # ------------------------------------------------------------------------
@@ -804,8 +854,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             print(f'Calculate day uzonia: {day_uzonia} with 3 way')
 
     final_uzonia_data_dict = {'day_uzonia': day_uzonia, 'uzonia_calculation_way': uzonia_calculation_way}
-    logger.info("add_new_uzonia_calculation | Calculated day_uzonia=%s using way %d", day_uzonia,
-                uzonia_calculation_way)
+    logger.info("add_new_uzonia_calculation | Calculated day_uzonia=%s using way %d", day_uzonia, uzonia_calculation_way)
 
     days_n_uzonias = [7, 30, 90, 180]
     for day_n_uzonia in days_n_uzonias:
@@ -829,6 +878,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     logger.info("add_new_uzonia_calculation | Calculated index=%s for date=%s", uzonia_index, cb_date)
 
 
+
     # ------------------------------------------------------------------------------------------------------------------
     # Adding Uzonia to the DB
     # ------------------------------------------------------------------------------------------------------------------
@@ -845,6 +895,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         logger.error("add_new_uzonia_calculation | Failed to add uzonia data to database for date=%s", cb_date)
         raise HTTPException(status_code=404, detail="❌ Could not add new uzonia data!")
     logger.info("add_new_uzonia_calculation | Successfully added uzonia data to database for date=%s", cb_date)
+
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -878,6 +929,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     logger.info("add_new_uzonia_calculation | Uzonia table data built successfully")
 
 
+
     # ------------------------------------------------------------------------------------------------------------------
     # Adding File Path to the DB
     # ------------------------------------------------------------------------------------------------------------------
@@ -888,6 +940,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         logger.error("add_new_uzonia_calculation | Failed to add file to database for file_id=%s", file_id)
         raise HTTPException(status_code=404, detail="❌ Could not add file to the DB")
     logger.info("add_new_uzonia_calculation | File path added successfully for file_id=%s", file_id)
+
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -911,6 +964,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     logger.info("add_new_uzonia_calculation | Table data drawn successfully at %s", image_file_path)
 
 
+
     # ------------------------------------------------------------------------------------------------------------------
     # Building Excel File
     # ------------------------------------------------------------------------------------------------------------------
@@ -931,6 +985,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     logger.info("add_new_uzonia_calculation | Excel file built successfully at %s", excel_file_path)
 
 
+
     # ------------------------------------------------------------------------------------------------------------------
     # Building Excel File
     # ------------------------------------------------------------------------------------------------------------------
@@ -941,6 +996,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         logger.error("add_new_uzonia_calculation | Failed to zip folder for file_id=%s", file_id)
         raise HTTPException(status_code=404, detail="❌ Could not zip folder")
     logger.info("add_new_uzonia_calculation | Folder zipped successfully at %s", zip_folder_path)
+
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -976,42 +1032,4 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         'filename': f"{file_id}.zip",
         'media_type': 'application/zip'
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

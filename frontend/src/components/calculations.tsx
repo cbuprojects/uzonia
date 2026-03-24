@@ -642,9 +642,12 @@ const CalculationsPage: React.FC = () => {
                         type="text"
                         inputMode="decimal"
                         value={cbDeposit}
-                        onChange={e => setCbDeposit(e.target.value)}
+                        onChange={e => {
+                            const numeric = e.target.value.replace(/\D/g, "");
+                            const formatted = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+                            setCbDeposit(formatted)}}
                         onKeyDown={numericKeyDown}
-                        placeholder="e.g. 500000000000"
+                        placeholder="e.g. 500 000 000 000"
                         style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace' }}
                       />
                     </div>
@@ -847,7 +850,7 @@ const CalculationsPage: React.FC = () => {
                 { src: youtube,   alt: 'YouTube',   href: 'https://www.youtube.com/centralbankofuzbekistan', w: 30 },
               ].map(s => (
                 <a key={s.alt} href={s.href} target="_blank" rel="noopener noreferrer"
-                  style={{ width: '32px', height: '32px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.07)', transition: 'background 0.2s' }}
+                  style={{ width: '32px', height: '32px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.16)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; }}>
                   <img src={s.src} alt={s.alt} style={{ width: `${s.w}px`, height: `${s.w}px`, objectFit: 'contain' }} />
