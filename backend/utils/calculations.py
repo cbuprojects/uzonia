@@ -1,4 +1,5 @@
 from typing import List
+from .database import get_last_five_uzonia
 
 
 async def calculate_10_percent(n: int, ten_percent_value: float, repos_data_list: list) -> List:
@@ -65,3 +66,15 @@ async def calculate_day_uzonia(ten_percent_value: float, repos_data_list: list) 
     total_multiplication_sum = await calculate_total_multiplication_sum(repos_data_list)
     day_uzonia = await calculate_uzonia_value(total_sum, total_multiplication_sum)
     return day_uzonia
+
+
+async def calculate_cb_rate(cb_rate: float) -> float:
+    last_five_uzonia = await get_last_five_uzonia()
+    uzonia_cb_rate_sum_list = []
+    for uzonia_value in last_five_uzonia:
+        uzonia_cb_rate  = uzonia_value - cb_rate
+        uzonia_cb_rate_sum_list.append(uzonia_cb_rate)
+    uzonia_cb_rate_sum = sum(uzonia_cb_rate_sum_list)
+
+    final_cb_rate = cb_rate + (uzonia_cb_rate_sum / 5)
+    return final_cb_rate

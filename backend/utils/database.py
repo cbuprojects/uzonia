@@ -419,6 +419,26 @@ async def get_time_period_uzonia_data(cb_date: date) -> Dict:
         return None
 
 
+async def get_last_five_uzonia():
+    """Get last five uzonia data."""
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT uzonia
+                FROM uzonia_data
+                ORDER BY uzonia_date DESC
+                LIMIT 5
+                """
+            )
+            if rows:
+                return [row['uzonia'] for row in rows]
+            else:
+                return []
+    except Exception as e:
+        print(f'Could not get all holiday data from database: {e}')
+        return None
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # uzonia_uploads
