@@ -710,7 +710,6 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     for application in applications_list_n:
         for index, row in repo_n_file_data.iterrows():
             if application == row['Номер заявки']:
-                applications_list_n.remove(application)
                 repos_data_list.append([row['Номер заявки'], row['Ставка РЕПО (в % годовых)'], row['Сумма РЕПО (в сумах)']])
     print(f'Repo data list: {repos_data_list}')
 
