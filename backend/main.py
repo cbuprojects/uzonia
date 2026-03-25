@@ -433,7 +433,7 @@ async def download_uzonia_data_file_api(file_id: str):
 
 @app.post("/api/add_new_uzonia_calculation", tags=["Add new uzonia"])
 async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: UploadFile, deposit_file: UploadFile,
-                                         cb_date: str = Form(...), cb_rate: float = Form(...), cb_deposit: float = Form(...)):
+                                         cb_date: str = Form(...), cb_rate: float = Form(...), cb_deposit: str = Form(...)):
     logger.info("add_new_uzonia_calculation | Starting calculation with cb_date=%s, cb_rate=%s, cb_deposit=%s", cb_date,
                 cb_rate, cb_deposit)
 
@@ -444,7 +444,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     try:
         cb_date = date.fromisoformat(cb_date)
         cb_rate = float(cb_rate)
-        cb_deposit = float(cb_deposit)
+        cb_deposit = float(cb_deposit.replace(" ", ""))
         logger.info("add_new_uzonia_calculation | CB data parsed successfully: cb_date=%s, cb_rate=%s, cb_deposit=%s",
                     cb_date, cb_rate, cb_deposit)
     except Exception as e:
@@ -544,65 +544,46 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     repo_n_file_data['Сумма РЕПО (в сумах)'] = repo_n_file_data['Сумма РЕПО (в сумах)'].astype(str).str.replace(',', '', regex=False).astype(float)
     repo_n_file_data['Сумма обр. выкупа (в сумах)'] = repo_n_file_data['Сумма обр. выкупа (в сумах)'].astype(str).str.replace(',', '').astype(float)
 
-    invalid_mask = ~repo_n_file_data['Инвестор'].isin(bank_names)
-    bad_ids = repo_n_file_data.loc[invalid_mask, 'Номер заявки']
-    logger.info("add_new_uzonia_calculation | Removing %d invalid investor entries from Repo N", len(bad_ids))
-    repo_n_file_data = repo_n_file_data[~repo_n_file_data['Номер заявки'].isin(bad_ids)].reset_index(drop=True)
+    print(repo_n_file_data)
+    removed_application_numbers = []
+    for idx, row in repo_n_file_data.iterrows():
+        if row['Инвестор'] not in bank_names:
+            application_number = row['Номер заявки']
+            removed_application_numbers.append(application_number)
+    repo_n_file_data = repo_n_file_data[~repo_n_file_data['Номер заявки'].isin(removed_application_numbers)].reset_index(drop=True)
+    print(repo_n_file_data)
 
+    print(repo_n_file_data)
     outdated_rows = []
-    for index, row in repo_m_file_data.iterrows():
+    for index, row in repo_n_file_data.iterrows():
         date_in = row['Время подачи']
         date_out = row['Время исполнения второй части']
         diff_days = (date_out - date_in).days
 
-        # ❌ invalid if same day or negative
-        if diff_days <= 0:
-            outdated_rows.append(index)
+        if diff_days > 1:
+            between_date = date_in + timedelta(days=1)
+            while between_date < date_out:
+                if between_date.weekday() < 5:
+                    if between_date in holidays_list:
+                        between_date = between_date + timedelta(days=1)
+                    else:
+                        outdated_rows.append(index)
+                        break
+                else:
+                    between_date = between_date + timedelta(days=1)
+        elif diff_days == 1:
             continue
-
-        # ✅ Case 1: exactly 1 day
-        if diff_days == 1:
-            if date_in not in holidays_list and date_out not in holidays_list:
-                continue
-            else:
-                outdated_rows.append(index)
-                continue
-
-        # ✅ Case 2: gap > 1 → check intermediate days
-        valid_gap = True
-        current = date_in
-
-        while current < date_out:
-            current += timedelta(days=1)
-
-            # skip weekends
-            if current.weekday() >= 5:
-                continue
-
-            # if weekday and NOT holiday → invalid
-            if current not in holidays_list:
-                valid_gap = False
-                break
-
-        if not valid_gap:
+        else:
             outdated_rows.append(index)
-            logger.warning(
-                "Repo M row %d invalid gap: %d days (%s → %s)",
-                index, diff_days, date_in, date_out
-            )
-            print(f"Row {index} invalid gap: {diff_days} days ({date_in} → {date_out})")
 
-        # 3. If we reach here → gap is invalid, handle it
-        logger.warning("add_new_uzonia_calculation | Repo M row %d has invalid gap: %d days (%s → %s)", index,
-                       diff_days, date_in, date_out)
-        print(f"Row {index} has invalid gap: {diff_days} days ({date_in} → {date_out})")
+    for index in outdated_rows:
+        repo_n_file_data = repo_n_file_data.drop(index).reset_index(drop=True)
+    print(repo_n_file_data)
+
 
     removed_rows = repo_n_file_data.loc[outdated_rows]
-    logger.info("add_new_uzonia_calculation | Removing %d rows due to invalid gaps from Repo N", len(outdated_rows))
+    logger.info("add_new_uzonia_calculation | Removed %d rows due to invalid gaps from Repo N", len(outdated_rows))
     repo_n_file_data = repo_n_file_data.drop(index=outdated_rows).reset_index(drop=True)
-
-    print("Removed rows due to invalid gaps:")
-    print(removed_rows)
 
 
 
@@ -622,64 +603,44 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     repo_m_file_data['Сумма обр. выкупа (в сумах)'] = \
     repo_m_file_data['Сумма обр. выкупа (в сумах)'].astype(str).str.replace(',', '').astype(float)
 
-    invalid_mask = ~repo_m_file_data['Дилер/Инвестор'].isin(bank_names)
-    bad_ids = repo_m_file_data.loc[invalid_mask, 'Номер заявки']
-    logger.info("add_new_uzonia_calculation | Removing %d invalid dealer/investor entries from Repo M", len(bad_ids))
-    repo_m_file_data = repo_m_file_data[~repo_m_file_data['Номер заявки'].isin(bad_ids)].reset_index(drop=True)
+    removed_application_numbers = []
+    for idx, row in repo_m_file_data.iterrows():
+        if row['Дилер/Инвестор'] not in bank_names:
+            application_number = row['Номер заявки']
+            removed_application_numbers.append(application_number)
+    repo_m_file_data = repo_m_file_data[~repo_m_file_data['Номер заявки'].isin(removed_application_numbers)].reset_index(drop=True)
 
+    print(repo_m_file_data)
     outdated_rows = []
     for index, row in repo_m_file_data.iterrows():
         date_in = row['Время подачи']
         date_out = row['Время исполнения второй части']
         diff_days = (date_out - date_in).days
 
-        # ❌ invalid if same day or negative
-        if diff_days <= 0:
-            outdated_rows.append(index)
+        if diff_days > 1:
+            between_date = date_in + timedelta(days=1)
+            while between_date < date_out:
+                if between_date.weekday() < 5:
+                    if between_date in holidays_list:
+                        between_date = between_date + timedelta(days=1)
+                    else:
+                        outdated_rows.append(index)
+                        break
+                else:
+                    between_date = between_date + timedelta(days=1)
+        elif diff_days == 1:
             continue
-
-        # ✅ Case 1: exactly 1 day
-        if diff_days == 1:
-            if date_in not in holidays_list and date_out not in holidays_list:
-                continue
-            else:
-                outdated_rows.append(index)
-                continue
-
-        # ✅ Case 2: gap > 1 → check intermediate days
-        valid_gap = True
-        current = date_in
-
-        while current < date_out:
-            current += timedelta(days=1)
-
-            # skip weekends
-            if current.weekday() >= 5:
-                continue
-
-            # if weekday and NOT holiday → invalid
-            if current not in holidays_list:
-                valid_gap = False
-                break
-
-        if not valid_gap:
+        else:
             outdated_rows.append(index)
-            logger.warning(
-                "Repo M row %d invalid gap: %d days (%s → %s)",
-                index, diff_days, date_in, date_out
-            )
-            print(f"Row {index} invalid gap: {diff_days} days ({date_in} → {date_out})")
 
-        # 3. If we reach here → gap is invalid, handle it
-        logger.warning("add_new_uzonia_calculation | Repo M row %d has invalid gap: %d days (%s → %s)", index,
-                       diff_days, date_in, date_out)
-        print(f"Row {index} has invalid gap: {diff_days} days ({date_in} → {date_out})")
+    for index in outdated_rows:
+        repo_m_file_data = repo_m_file_data.drop(index).reset_index(drop=True)
+    print(repo_m_file_data)
 
     removed_rows = repo_m_file_data.loc[outdated_rows]
-    logger.info("add_new_uzonia_calculation | Removing %d rows due to invalid gaps from Repo M", len(outdated_rows))
+    logger.info("add_new_uzonia_calculation | Removed %d rows due to invalid gaps from Repo M", len(outdated_rows))
     repo_m_file_data = repo_m_file_data.drop(index=outdated_rows).reset_index(drop=True)
 
-    print("Removed rows due to invalid gaps:")
     print(removed_rows)
 
 
@@ -702,55 +663,35 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     deposit_file_data['Процентная ставка'] = deposit_file_data['Процентная ставка'].astype(float)
     deposit_file_data['Срок возврата (в днях)'] = deposit_file_data['Срок возврата (в днях)'].astype(str).str.strip()
 
+    print(deposit_file_data)
     outdated_rows = []
     for index, row in deposit_file_data.iterrows():
         date_in = row['ОперДата']
         date_out = row['Дата возврата']
         diff_days = (date_out - date_in).days
 
-        # ❌ invalid if same day or negative
-        if diff_days <= 0:
-            outdated_rows.append(index)
+        if diff_days > 1:
+            between_date = date_in + timedelta(days=1)
+            while between_date < date_out:
+                if between_date.weekday() < 5:
+                    if between_date in holidays_list:
+                        between_date = between_date + timedelta(days=1)
+                    else:
+                        outdated_rows.append(index)
+                        break
+                else:
+                    between_date = between_date + timedelta(days=1)
+        elif diff_days == 1:
             continue
-
-        # ✅ Case 1: exactly 1 day
-        if diff_days == 1:
-            if date_in not in holidays_list and date_out not in holidays_list:
-                continue
-            else:
-                outdated_rows.append(index)
-                continue
-
-        # ✅ Case 2: gap > 1 → check intermediate days
-        valid_gap = True
-        current = date_in
-
-        while current < date_out:
-            current += timedelta(days=1)
-
-            # skip weekends
-            if current.weekday() >= 5:
-                continue
-
-            # if weekday and NOT holiday → invalid
-            if current not in holidays_list:
-                valid_gap = False
-                break
-
-        if not valid_gap:
+        else:
             outdated_rows.append(index)
-            logger.warning(
-                "Repo M row %d invalid gap: %d days (%s → %s)",
-                index, diff_days, date_in, date_out
-            )
-            print(f"Row {index} invalid gap: {diff_days} days ({date_in} → {date_out})")
 
-    removed_rows = deposit_file_data.loc[outdated_rows]
-    logger.info("add_new_uzonia_calculation | Removing %d rows due to invalid gaps from Deposit", len(outdated_rows))
+    for index in outdated_rows:
+        deposit_file_data = deposit_file_data.drop(index).reset_index(drop=True)
+    print(deposit_file_data)
+
+    logger.info("add_new_uzonia_calculation | Removed %d rows due to invalid gaps from Deposit", len(outdated_rows))
     deposit_file_data = deposit_file_data.drop(index=outdated_rows).reset_index(drop=True)
-
-    print("Removed rows due to invalid gaps:")
-    print(removed_rows)
 
 
 
@@ -760,7 +701,10 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     logger.info("add_new_uzonia_calculation | Calculating Repo N and M data...")
 
     repos_data_list = []
-    applications_list_n = repo_n_file_data['Номер заявки'].astype(str).str.strip().unique().tolist()
+    applications_list_n = repo_n_file_data['Номер заявки'].tolist()
+    print(applications_list_n)
+    applications_list_n = set(applications_list_n)
+    print(applications_list_n)
     logger.info("add_new_uzonia_calculation | Found %d unique applications in Repo N", len(applications_list_n))
     print(f'Number of applications: {applications_list_n}')
     for application in applications_list_n:
@@ -770,7 +714,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
                 repos_data_list.append([row['Номер заявки'], row['Ставка РЕПО (в % годовых)'], row['Сумма РЕПО (в сумах)']])
     print(f'Repo data list: {repos_data_list}')
 
-    applications_list_m = repo_m_file_data['Номер заявки'].astype(str).str.strip().unique().tolist()
+    applications_list_m = repo_m_file_data['Номер заявки'].tolist()
     logger.info("add_new_uzonia_calculation | Found %d unique applications in Repo M", len(applications_list_m))
     print(f'Number of applications: {applications_list_m}')
     for application in applications_list_m:
@@ -783,7 +727,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     repos_data_list.sort(key=lambda x: x[1])
     total_value = 0
     for row_data in repos_data_list:
-        total_value += row_data[2]
+        total_value = total_value + row_data[2]
     logger.info("add_new_uzonia_calculation | Total value after combining repos: %s", total_value)
 
 
