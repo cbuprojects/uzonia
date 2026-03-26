@@ -60,6 +60,7 @@ async def init_db_pool() -> None:
                 day_180_uzonia            NUMERIC(8, 4),
                 index                     NUMERIC(8, 4) NOT NULL,
                 uzonia_date               DATE NOT NULL UNIQUE,
+                days                      INTEGER NOT NULL,
                 created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )
         """)
@@ -247,17 +248,17 @@ async def check_existence_uzonia_data() -> bool:
 
 async def add_new_uzonia_data(file_id: str, rate: float, uzonia: float,  day_7_uzonia: float,
                               day_30_uzonia: float, day_90_uzonia: float,
-                              day_180_uzonia: float, index: float, uzonia_date: date) -> bool:
+                              day_180_uzonia: float, index: float, uzonia_date: date, days: int) -> bool:
     """Insert a new uzonia code. Returns False on duplicate."""
     try:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
                 INSERT INTO uzonia_data (file_id, rate, uzonia, day_7_uzonia, day_30_uzonia,
-                                         day_90_uzonia, day_180_uzonia, index, uzonia_date)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                                         day_90_uzonia, day_180_uzonia, index, uzonia_date, days)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 """,
-                file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date
+                file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
             )
         return True
     except asyncpg.UniqueViolationError:
@@ -270,7 +271,7 @@ async def get_single_uzonia_data(uzonia_date: date) -> Optional[Dict]:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                SELECT file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date
+                SELECT file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
                 FROM uzonia_data
                 WHERE uzonia_date = $1
                 """,
@@ -280,7 +281,7 @@ async def get_single_uzonia_data(uzonia_date: date) -> Optional[Dict]:
             return {'file_id': row['file_id'], 'rate': row['rate'], 'uzonia': row['uzonia'],
                     'day_7_uzonia': row['day_7_uzonia'], 'day_30_uzonia': row['day_30_uzonia'],
                     'day_90_uzonia': row['day_90_uzonia'], 'day_180_uzonia': row['day_180_uzonia'],
-                    'index': row['index'], 'uzonia_date': row['uzonia_date']}
+                    'index': row['index'], 'uzonia_date': row['uzonia_date'], 'days': row['days']}
         else:
             return None
     except Exception as e:
@@ -305,7 +306,7 @@ async def delete_uzonia_data(uzonia_date: date) -> bool:
 
 
 async def edit_uzonia_data(rate: float, uzonia: float, day_7_uzonia: float, day_30_uzonia: float, day_90_uzonia: float,
-                           day_180_uzonia: float, index: float, uzonia_date: date) -> bool:
+                           day_180_uzonia: float, index: float, uzonia_date: date, days: int) -> bool:
     """Edit uzonia data from database."""
     try:
         async with pool.acquire() as conn:
@@ -313,9 +314,9 @@ async def edit_uzonia_data(rate: float, uzonia: float, day_7_uzonia: float, day_
                 """
                 UPDATE uzonia_data
                 SET rate = $1, uzonia = $2, day_7_uzonia = $3, day_30_uzonia = $4,
-                    day_90_uzonia = $5, day_180_uzonia = $6, index = $7
-                WHERE uzonia_date = $8
-                """, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date
+                    day_90_uzonia = $5, day_180_uzonia = $6, index = $7, days = $8
+                WHERE uzonia_date = $9
+                """, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days, uzonia_date
             )
 
         return True
@@ -330,7 +331,7 @@ async def get_all_uzonia_data() -> List[Dict]:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, created_at
+                SELECT file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days, created_at
                 FROM uzonia_data
                 ORDER BY uzonia_date DESC
                 """
@@ -346,6 +347,7 @@ async def get_all_uzonia_data() -> List[Dict]:
                          'day_180_uzonia': row['day_180_uzonia'],
                          'index': row['index'],
                          'uzonia_date': row['uzonia_date'],
+                         'days': row['days'],
                          'created_at': row['created_at']} for row in rows]
             else:
                 return []
@@ -358,14 +360,14 @@ async def get_n_uzonia_data(days_number: int) -> list:
     """Get uzonia data for last n days."""
     try:
         async with pool.acquire() as conn:
-            uzonias = await conn.fetch("""
-                SELECT uzonia
+            rows = await conn.fetch("""
+                SELECT uzonia, days
                 FROM uzonia_data
                 ORDER BY uzonia_date DESC
                 LIMIT $1
             """, days_number)
-            uzonias = [uzonia['uzonia'] for uzonia in uzonias]
-            return uzonias
+            rows = [[row['uzonia'], row['days']] for row in rows]
+            return rows
     except Exception as e:
         print(f"Error fetching UZONIA data: {e}")
         return []
@@ -377,7 +379,7 @@ async def get_date_filtered_rate_uzonia(from_date: date) -> List[Dict]:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT uzonia_date, rate, uzonia, 
+                SELECT uzonia_date, rate, uzonia
                 FROM uzonia_data
                 WHERE uzonia_date >= $1
                 ORDER BY uzonia_date ASC
@@ -401,7 +403,7 @@ async def get_time_period_uzonia_data(cb_date: date) -> Dict:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT uzonia_date, uzonia, 
+                SELECT uzonia_date, uzonia
                 FROM uzonia_data
                 WHERE uzonia_date <= $1
                 ORDER BY uzonia_date ASC
@@ -438,6 +440,7 @@ async def get_last_five_uzonia():
     except Exception as e:
         print(f'Could not get all holiday data from database: {e}')
         return None
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------

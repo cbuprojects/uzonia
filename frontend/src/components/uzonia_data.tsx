@@ -42,16 +42,17 @@ interface UzoniaRow {
   day_180_uzonia: number;
   index:          number;
   uzonia_date:    string;
+  days:           number;
   created_at:     string | null;
 }
 
 interface AddForm {
   file_id: string; rate: string; uzonia: string; day_7_uzonia: string; day_30_uzonia: string;
-  day_90_uzonia: string; day_180_uzonia: string; index: string; uzonia_date: string;
+  day_90_uzonia: string; day_180_uzonia: string; index: string; uzonia_date: string; days: string;
 }
 interface EditForm {
   rate: string; uzonia: string; day_7_uzonia: string; day_30_uzonia: string;
-  day_90_uzonia: string; day_180_uzonia: string; index: string;
+  day_90_uzonia: string; day_180_uzonia: string; index: string; days: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -118,7 +119,6 @@ const SmartDateInput: React.FC<SmartDateInputProps> = ({ value, onChange, placeh
 };
 
 // ─── Numeric-only search input ────────────────────────────────────────────────
-// Allows digits, one decimal point, and a trailing % for display matching
 
 const NumSearch = ({ value, onChange, placeholder, icon, flex }: {
   value: string; onChange: (v: string) => void; placeholder: string; icon: string; flex?: string;
@@ -165,10 +165,19 @@ const RateBadge = ({ value, bg, color }: { value: number; bg: string; color: str
   </span>
 );
 
+// ─── Days badge ───────────────────────────────────────────────────────────────
+
+const DaysBadge = ({ value }: { value: number }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontFamily: 'monospace', fontSize: '12px', fontWeight: '700', background: '#f0f9ff', color: '#0369a1', padding: '2px 7px', borderRadius: '6px', border: '1px solid #bae6fd', whiteSpace: 'nowrap' }}>
+    <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>today</span>
+    {typeof value === 'number' ? value : '—'}
+  </span>
+);
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const EMPTY_ADD: AddForm = { file_id: '', rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '', uzonia_date: '' };
-const EMPTY_EDIT: EditForm = { rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '' };
+const EMPTY_ADD: AddForm = { file_id: '', rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '', uzonia_date: '', days: '' };
+const EMPTY_EDIT: EditForm = { rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '', days: '' };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -182,6 +191,7 @@ const UzoniaDataPage = () => {
 
   // ── Per-column filter state ───────────────────────────────────────────────
   const [fDate,    setFDate]    = useState('');
+  const [fDays,    setFDays]    = useState('');
   const [fFileId,  setFFileId]  = useState('');
   const [fRate,    setFRate]    = useState('');
   const [fUzonia,  setFUzonia]  = useState('');
@@ -228,6 +238,7 @@ const UzoniaDataPage = () => {
   const filteredData = useMemo(() => {
     let f = [...rows];
     if (fDate.trim())    f = f.filter(r => formatDate(r.uzonia_date).includes(fDate.trim()));
+    if (fDays.trim())    f = f.filter(r => String(r.days).includes(fDays.trim()));
     if (fFileId.trim())  f = f.filter(r => r.file_id.toLowerCase().includes(fFileId.trim().toLowerCase()));
     if (fRate.trim())    f = f.filter(r => fmtRate(r.rate).includes(fRate.trim()));
     if (fUzonia.trim())  f = f.filter(r => fmtRate(r.uzonia).includes(fUzonia.trim()));
@@ -238,7 +249,7 @@ const UzoniaDataPage = () => {
     if (fIndex.trim())   f = f.filter(r => fmtIndex(r.index).includes(fIndex.trim()));
     if (fCreated.trim()) f = f.filter(r => formatDateTime(r.created_at).toLowerCase().includes(fCreated.trim().toLowerCase()));
     return f;
-  }, [rows, fDate, fFileId, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fCreated]);
+  }, [rows, fDate, fDays, fFileId, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fCreated]);
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -256,16 +267,16 @@ const UzoniaDataPage = () => {
     };
   }, [rows]);
 
-  const hasActiveFilters = fDate || fFileId || fRate || fUzonia || fDay7 || fDay30 || fDay90 || fDay180 || fIndex || fCreated;
+  const hasActiveFilters = fDate || fDays || fFileId || fRate || fUzonia || fDay7 || fDay30 || fDay90 || fDay180 || fIndex || fCreated;
   const totalPages    = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = useMemo(
     () => filteredData.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage),
     [filteredData, currentPage]
   );
-  useEffect(() => { setCurrentPage(1); }, [fDate, fFileId, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fCreated]);
+  useEffect(() => { setCurrentPage(1); }, [fDate, fDays, fFileId, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fCreated]);
 
   const handleClearFilters = useCallback(() => {
-    setFDate(''); setFFileId(''); setFRate(''); setFUzonia(''); setFDay7('');
+    setFDate(''); setFDays(''); setFFileId(''); setFRate(''); setFUzonia(''); setFDay7('');
     setFDay30(''); setFDay90(''); setFDay180(''); setFIndex(''); setFCreated('');
   }, []);
 
@@ -273,17 +284,17 @@ const UzoniaDataPage = () => {
   const openAddModal    = () => { setAddForm({ ...EMPTY_ADD }); setIsAddModalOpen(true); };
   const openEditModal   = (r: UzoniaRow) => {
     setTargetRow(r);
-    setEditForm({ rate: String(r.rate), uzonia: String(r.uzonia), day_7_uzonia: String(r.day_7_uzonia), day_30_uzonia: String(r.day_30_uzonia), day_90_uzonia: String(r.day_90_uzonia), day_180_uzonia: String(r.day_180_uzonia), index: String(r.index) });
+    setEditForm({ rate: String(r.rate), uzonia: String(r.uzonia), day_7_uzonia: String(r.day_7_uzonia), day_30_uzonia: String(r.day_30_uzonia), day_90_uzonia: String(r.day_90_uzonia), day_180_uzonia: String(r.day_180_uzonia), index: String(r.index), days: String(r.days) });
     setIsEditModalOpen(true);
   };
   const openDeleteModal = (r: UzoniaRow) => { setTargetRow(r); setIsDeleteModalOpen(true); };
 
   const handleAdd = async () => {
-    const { file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date } = addForm;
-    if (!file_id.trim()||!rate||!uzonia||!day_7_uzonia||!day_30_uzonia||!day_90_uzonia||!day_180_uzonia||!index||!uzonia_date) { showToast('All fields are required.', 'error'); return; }
+    const { file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days } = addForm;
+    if (!file_id.trim()||!rate||!uzonia||!day_7_uzonia||!day_30_uzonia||!day_90_uzonia||!day_180_uzonia||!index||!uzonia_date||!days) { showToast('All fields are required.', 'error'); return; }
     setIsSaving(true);
     try {
-      const p = new URLSearchParams({ file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date });
+      const p = new URLSearchParams({ file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days });
       const res = await fetch(`${API_BASE_URL}/api/add_new_uzonia?${p}`, { method: 'POST' });
       if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
       setIsAddModalOpen(false); setAddForm({ ...EMPTY_ADD }); mutate();
@@ -294,11 +305,11 @@ const UzoniaDataPage = () => {
 
   const handleEdit = async () => {
     if (!targetRow) return;
-    const { rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index } = editForm;
-    if (!rate||!uzonia||!day_7_uzonia||!day_30_uzonia||!day_90_uzonia||!day_180_uzonia||!index) { showToast('All rate fields are required.', 'error'); return; }
+    const { rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days } = editForm;
+    if (!rate||!uzonia||!day_7_uzonia||!day_30_uzonia||!day_90_uzonia||!day_180_uzonia||!index||!days) { showToast('All rate fields are required.', 'error'); return; }
     setIsSaving(true);
     try {
-      const p = new URLSearchParams({ rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date: targetRow.uzonia_date });
+      const p = new URLSearchParams({ rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days, uzonia_date: targetRow.uzonia_date });
       const res = await fetch(`${API_BASE_URL}/api/edit_uzonia_data?${p}`, { method: 'PUT' });
       if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
       setIsEditModalOpen(false); setTargetRow(null); mutate();
@@ -472,6 +483,9 @@ const UzoniaDataPage = () => {
               {/* DATE */}
               <SmartDateInput value={fDate} onChange={setFDate} placeholder="Date" flex="140px" />
 
+              {/* DAYS — numeric only */}
+              <NumSearch value={fDays} onChange={setFDays} placeholder="Days" icon="today" flex="80px" />
+
               {/* FILE ID */}
               <ColSearch value={fFileId} onChange={setFFileId} placeholder="File ID" icon="search" flex="110px" />
 
@@ -519,6 +533,7 @@ const UzoniaDataPage = () => {
               <div style={{ marginTop: '7px', fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', padding: '4px 8px', background: '#f1f5f9', borderRadius: '7px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#0a3b5c' }}>filter_alt</span>
                 {fDate    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Date:<strong>{fDate}</strong></span>}
+                {fDays    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Days:<strong>{fDays}</strong></span>}
                 {fFileId  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>FileID:<strong>{fFileId}</strong></span>}
                 {fRate    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Rate:<strong>{fRate}</strong></span>}
                 {fUzonia  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Uzonia:<strong>{fUzonia}</strong></span>}
@@ -559,7 +574,8 @@ const UzoniaDataPage = () => {
                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid #0a3b5c' }}>
                         {[
                           { label: '#',          w: '1px'  },
-                          { label: 'DATE',       w: '10px' },
+                          { label: 'DATE',       w: '100px' },
+                          { label: 'DAYS',       w: '60px' },
                           { label: 'FILE ID',    w: '80px' },
                           { label: 'RATE',       w: '80px' },
                           { label: 'UZONIA',     w: '80px' },
@@ -590,6 +606,10 @@ const UzoniaDataPage = () => {
                                 <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>event</span>
                                 {formatDate(item.uzonia_date)}
                               </span>
+                            </td>
+                            {/* ── DAYS column ── */}
+                            <td style={{ padding: '9px 11px', textAlign: 'center' }}>
+                              <DaysBadge value={item.days} />
                             </td>
                             <td style={{ padding: '9px 11px', maxWidth: '126px' }}>
                               <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#64748b', background: '#f8fafc', padding: '2px 5px', borderRadius: '4px', border: '1px solid #e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={item.file_id}>{item.file_id}</span>
@@ -758,12 +778,23 @@ const UzoniaDataPage = () => {
               <button onClick={() => setIsAddModalOpen(false)} style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '13px', marginBottom: '20px' }}>
-              <div>
-                <label style={labelStyle}>Uzonia Date <span style={{ color: '#dc2626' }}>*</span></label>
-                <div style={{ position: 'relative' }}>
-                  <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>event</span>
-                  <input type="date" value={addForm.uzonia_date} onChange={e => setAddForm(f => ({ ...f, uzonia_date: e.target.value }))}
-                    style={{ ...inputStyle, paddingLeft: '32px', fontFamily: 'monospace', colorScheme: 'light' }} />
+              {/* Date + Days on same row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>Uzonia Date <span style={{ color: '#dc2626' }}>*</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>event</span>
+                    <input type="date" value={addForm.uzonia_date} onChange={e => setAddForm(f => ({ ...f, uzonia_date: e.target.value }))}
+                      style={{ ...inputStyle, paddingLeft: '32px', fontFamily: 'monospace', colorScheme: 'light' }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Days <span style={{ color: '#dc2626' }}>*</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>today</span>
+                    <input type="number" min="1" step="1" value={addForm.days} onChange={e => setAddForm(f => ({ ...f, days: e.target.value }))}
+                      placeholder="e.g. 1" style={{ ...inputStyle, paddingLeft: '32px', fontFamily: 'monospace' }} />
+                  </div>
                 </div>
               </div>
               <div>
@@ -810,10 +841,18 @@ const UzoniaDataPage = () => {
               <button onClick={() => setIsEditModalOpen(false)} style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '13px', marginBottom: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ ...labelStyle, color: '#94a3b8' }}>Uzonia Date (read-only)</label>
                   <input type="text" value={formatDate(targetRow.uzonia_date)} disabled style={{ ...inputStyle, background: '#f1f5f9', color: '#64748b', fontFamily: 'monospace' }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Days <span style={{ color: '#dc2626' }}>*</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '15px', pointerEvents: 'none', zIndex: 2 }}>today</span>
+                    <input type="number" min="1" step="1" value={editForm.days} onChange={e => setEditForm(f => ({ ...f, days: e.target.value }))}
+                      placeholder="e.g. 1" style={{ ...inputStyle, paddingLeft: '32px', fontFamily: 'monospace' }} />
+                  </div>
                 </div>
                 <div>
                   <label style={{ ...labelStyle, color: '#94a3b8' }}>File ID (read-only)</label>
@@ -869,6 +908,7 @@ const UzoniaDataPage = () => {
               </div>
               <div style={{ paddingLeft: '20px', fontSize: '12px', color: '#4b5563', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '2.2' }}>
                 <div>Date: <strong style={{ fontFamily: 'monospace', color: '#dc2626' }}>{formatDate(targetRow.uzonia_date)}</strong></div>
+                <div>Days: <strong style={{ fontFamily: 'monospace', color: '#0369a1' }}>{targetRow.days}</strong></div>
                 <div>File ID: <strong style={{ fontFamily: 'monospace' }}>{targetRow.file_id}</strong></div>
                 <div>Rate: <strong style={{ fontFamily: 'monospace' }}>{fmtRate(targetRow.rate)}</strong></div>
                 <div>Uzonia: <strong style={{ fontFamily: 'monospace' }}>{fmtRate(targetRow.uzonia)}</strong></div>

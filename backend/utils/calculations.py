@@ -3,31 +3,18 @@ from .database import get_last_five_uzonia
 
 
 async def calculate_10_percent(n: int, ten_percent_value: float, repos_data_list: list) -> List:
-    while True:
-        diff_value = ten_percent_value - repos_data_list[n][2]
+    while repos_data_list and ten_percent_value > 0:
+        current_value = repos_data_list[n][2]
+        diff_value = ten_percent_value - current_value
+
         if diff_value > 0:
             removed_item = repos_data_list.pop(n)
-            print(f'removed item: {removed_item}, updated list: {repos_data_list}')
+            print(f'removed item: {removed_item}')
             ten_percent_value = diff_value
+            print(f'New ten_percent_value: {ten_percent_value}')
+            print(f'updated list: {repos_data_list}')
         else:
-            new_value = abs(diff_value)
-            repos_data_list[n][2] = new_value
-            break
-
-    return repos_data_list
-
-
-async def calculte_down_10_percent(n: int, ten_percent_value: float, repos_data_list: list) -> List:
-    while True:
-        diff_value = ten_percent_value - repos_data_list[n][2]
-        if diff_value > 0:
-            removed_item = repos_data_list.pop(n)
-            print(f'removed item: {removed_item}, updated list: {repos_data_list}')
-            ten_percent_value = diff_value
-            n -= 1
-        else:
-            new_value = abs(diff_value)
-            repos_data_list[n][2] = new_value
+            repos_data_list[n][2] = abs(diff_value)
             break
 
     return repos_data_list
@@ -62,7 +49,8 @@ async def calculate_uzonia_value(total_sum: float, total_multiplication_sum: flo
 async def calculate_day_uzonia(ten_percent_value: float, repos_data_list: list) -> float:
     repos_data_list = await calculate_10_percent(n=0, ten_percent_value=ten_percent_value, repos_data_list=repos_data_list)
     print('10% Repo list: ', repos_data_list)
-    repos_data_list = await calculte_down_10_percent(n=len(repos_data_list) - 1, ten_percent_value=ten_percent_value,  repos_data_list=repos_data_list)
+
+    repos_data_list = await calculate_10_percent(n=-1, ten_percent_value=ten_percent_value,  repos_data_list=repos_data_list)
     print('10% Repo down list: ', repos_data_list)
     total_sum = await calculate_total_sum(repos_data_list)
     total_multiplication_sum = await calculate_total_multiplication_sum(repos_data_list)

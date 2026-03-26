@@ -254,11 +254,11 @@ async def get_all_uzonia_data_api():
 
 @app.post("/api/add_new_uzonia", tags=["Add New Uzonia"])
 async def add_new_uzonia_api(file_id: str, uzonia: float, day_7_uzonia: float, day_30_uzonia: float,
-                             day_90_uzonia: float, day_180_uzonia: float, index: float, uzonia_date: date):
-    logger.info("add_new_uzonia | uzonia_date=%s, file_id=%s, uzonia=%s, day_7_uzonia=%s, day_30_uzonia=%s, day_90_uzonia=%s, day_180_uzonia=%s, index=%s",
-        uzonia_date, file_id, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index)
+                             day_90_uzonia: float, day_180_uzonia: float, index: float, uzonia_date: date, days: int):
+    logger.info("add_new_uzonia | uzonia_date=%s, file_id=%s, uzonia=%s, day_7_uzonia=%s, day_30_uzonia=%s, day_90_uzonia=%s, day_180_uzonia=%s, index=%s, days=%s",
+        uzonia_date, file_id, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days)
 
-    if not file_id or not uzonia or not day_7_uzonia or not day_30_uzonia or not day_90_uzonia or not day_180_uzonia or not index or not uzonia_date:
+    if not file_id or not uzonia or not day_7_uzonia or not day_30_uzonia or not day_90_uzonia or not day_180_uzonia or not index or not uzonia_date or not days:
         logger.warning("add_new_uzonia | Missing parameters")
         raise HTTPException(status_code=400, detail="new_uzonia and new_uzonia_date parameters are required!")
 
@@ -278,7 +278,7 @@ async def add_new_uzonia_api(file_id: str, uzonia: float, day_7_uzonia: float, d
 
     updated_row = await add_new_uzonia_data(file_id=file_id, uzonia=uzonia, day_7_uzonia=day_7_uzonia,
                                             day_30_uzonia=day_30_uzonia, day_90_uzonia=day_90_uzonia,
-                                            day_180_uzonia=day_180_uzonia, index=index, uzonia_date=uzonia_date)
+                                            day_180_uzonia=day_180_uzonia, index=index, uzonia_date=uzonia_date, days=days)
     if not updated_row:
         logger.error("add_new_uzonia | DB insert failed for uzonia_date=%s", uzonia_date)
         raise HTTPException(status_code=404, detail="Could not add the new uzonia to database!")
@@ -289,12 +289,12 @@ async def add_new_uzonia_api(file_id: str, uzonia: float, day_7_uzonia: float, d
 
 @app.put('/api/edit_uzonia_data', tags=["Edit Uzonia Status"])
 async def edit_uzonia_api(rate: float, uzonia: float, day_7_uzonia: float, day_30_uzonia: float,
-                          day_90_uzonia: float, day_180_uzonia: float, index: float, uzonia_date: date):
+                          day_90_uzonia: float, day_180_uzonia: float, index: float, uzonia_date: date, days: int):
     logger.info(
         "edit_uzonia_data | uzonia_date=%s, rate=%s, uzonia=%s, day_7_uzonia=%s, day_30_uzonia=%s, day_90_uzonia=%s, day_180_uzonia=%s, index=%s",
         uzonia_date, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index)
 
-    if not rate or not uzonia or not day_7_uzonia or not day_30_uzonia or not day_90_uzonia or not day_180_uzonia or not index or not uzonia_date:
+    if not rate or not uzonia or not day_7_uzonia or not day_30_uzonia or not day_90_uzonia or not day_180_uzonia or not index or not uzonia_date or not days:
         logger.warning("edit_uzonia_data | Missing necessary data")
         raise HTTPException(status_code=400, detail="Uzonia datas are required")
 
@@ -305,7 +305,7 @@ async def edit_uzonia_api(rate: float, uzonia: float, day_7_uzonia: float, day_3
 
     updated_row = await edit_uzonia_data(rate=rate, uzonia=uzonia, day_7_uzonia=day_7_uzonia,
                                          day_30_uzonia=day_30_uzonia, day_90_uzonia=day_90_uzonia,
-                                         day_180_uzonia=day_180_uzonia, index=index, uzonia_date=uzonia_date)
+                                         day_180_uzonia=day_180_uzonia, index=index, uzonia_date=uzonia_date, days=days)
     if not updated_row:
         logger.error("edit_uzonia_data | DB update failed for uzonia_date=%s", uzonia_date)
         raise HTTPException(status_code=404, detail="Could not update the uzonia data!")

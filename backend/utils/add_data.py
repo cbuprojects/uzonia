@@ -30,6 +30,14 @@ async def add_new_uzonia_data_to_the_db() -> bool:
 
     for index, row in uzonia_data.iterrows():
         uzonia_date = row['Sana']
+        next_index = index + 1
+
+        if next_index > (len(uzonia_data) - 1):
+            next_index = index
+
+        next_date = uzonia_data.at[next_index, 'Sana']
+        days = (uzonia_date - next_date).days
+
         rate = row['Asosiy stavka'] if pd.notnull(row['Asosiy stavka']) else None
         day_uzonia = row['UZONIA'] if pd.notnull(row['UZONIA']) else None
         day_7_uzonia = row['7-kunlik UZONIA'] if pd.notnull(row['7-kunlik UZONIA']) else None
@@ -40,7 +48,7 @@ async def add_new_uzonia_data_to_the_db() -> bool:
 
         result = await add_new_uzonia_data(file_id=file_id, rate=rate, uzonia=day_uzonia, day_7_uzonia=day_7_uzonia,
                                   day_30_uzonia=day_30_uzonia, day_90_uzonia=day_90_uzonia,
-                                  day_180_uzonia=day_180_uzonia, index=uzonia_index, uzonia_date=uzonia_date)
+                                  day_180_uzonia=day_180_uzonia, index=uzonia_index, uzonia_date=uzonia_date, days=days)
         print(f'{index}.Added new uzonia data: {uzonia_date}, {result}')
 
     return True
