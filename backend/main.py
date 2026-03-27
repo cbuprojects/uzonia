@@ -23,7 +23,7 @@ from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data
                             delete_uzonia_data, get_all_uzonia_data, edit_uzonia_data,
                             get_single_uzonia_upload, get_all_uzonia_uploads, delete_uzonia_upload, edit_uzonia_upload_status,
                             get_date_filtered_rate_uzonia, get_time_period_uzonia_data,
-                            add_new_uzonia_upload)
+                            add_new_uzonia_upload, get_latest_uzonia_data)
 from utils.add_data import add_new_uzonia_data_to_the_db, add_new_holiday_data_to_the_db
 from utils.calculations import calculate_day_uzonia, calculate_cb_rate
 from utils.draw_graph import draw_graph_data
@@ -771,15 +771,21 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     final_uzonia_data_dict = {'day_uzonia': day_uzonia, 'uzonia_calculation_way': uzonia_calculation_way}
     logger.info("add_new_uzonia_calculation | Calculated day_uzonia=%s using way %d", day_uzonia, uzonia_calculation_way)
 
+
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Calculating N days values
+    # ------------------------------------------------------------------------------------------------------------------
     days_n_uzonias = [7, 30, 90, 180]
     for day_n_uzonia in days_n_uzonias:
         logger.info("add_new_uzonia_calculation | Calculating %d-day uzonia", day_n_uzonia)
         day_n_uzonias_list = await get_n_uzonia_data(days_number=day_n_uzonia)
-        total_multiplied_uzonia_value = 0
+
+        total_multiplied_uzonia_value = 1
         for day_n_uzonia_value in day_n_uzonias_list:
-            total_multiplied_uzonia_value *= (1 + (day_n_uzonia_value / (365 * 100)))
-        total_multiplied_uzonia_value -= 1
-        n_day_final_uzonia_value = (total_multiplied_uzonia_value * (365 / day_n_uzonia) * 100)
+            total_multiplied_uzonia_value *= (1 + (day_n_uzonia_value[0] * day_n_uzonia_value[1]))
+
+        n_day_final_uzonia_value = ((total_multiplied_uzonia_value -1) * (365 / day_n_uzonia))
         final_uzonia_data_dict[f'day_{day_n_uzonia}_uzonia'] = n_day_final_uzonia_value
         print(f'Calculated {day_n_uzonia} uzonia: {n_day_final_uzonia_value}')
         logger.info("add_new_uzonia_calculation | Calculated %d-day uzonia: %s", day_n_uzonia, n_day_final_uzonia_value)
@@ -787,7 +793,11 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     print(f'Final Uzonia: {final_uzonia_data_dict}')
     logger.info("add_new_uzonia_calculation | Final uzonia data dictionary created")
 
-    uzonia_index = (1 + (day_uzonia / (365 * 100)))
+    latest_uzonia_data = await get_latest_uzonia_data()
+    latest_date = latest_uzonia_data['uzonia_date']
+    latest_index = latest_uzonia_data['index']
+    n_day_number = (cb_date - latest_date).days
+    uzonia_index = latest_index * (1 + ((day_uzonia * n_day_number) / (365 * 100)))
     final_uzonia_data_dict['index'] = uzonia_index
     final_uzonia_data_dict['uzonia_date'] = cb_date
     logger.info("add_new_uzonia_calculation | Calculated index=%s for date=%s", uzonia_index, cb_date)

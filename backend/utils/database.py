@@ -366,7 +366,7 @@ async def get_n_uzonia_data(days_number: int) -> list:
                 ORDER BY uzonia_date DESC
                 LIMIT $1
             """, days_number)
-            rows = [[row['uzonia'], row['days']] for row in rows]
+            rows = [[float(row['uzonia']), float(row['days'])] for row in rows]
             return rows
     except Exception as e:
         print(f"Error fetching UZONIA data: {e}")
@@ -439,6 +439,29 @@ async def get_last_five_uzonia():
                 return []
     except Exception as e:
         print(f'Could not get all holiday data from database: {e}')
+        return None
+
+
+async def get_latest_uzonia_data():
+    """Get latest uzonia data."""
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
+                FROM uzonia_data
+                ORDER BY uzonia_date DESC
+                LIMIT 1
+                """)
+        if row:
+            return {'file_id': row['file_id'], 'rate': row['rate'], 'uzonia': row['uzonia'],
+                    'day_7_uzonia': row['day_7_uzonia'], 'day_30_uzonia': row['day_30_uzonia'],
+                    'day_90_uzonia': row['day_90_uzonia'], 'day_180_uzonia': row['day_180_uzonia'],
+                    'index': row['index'], 'uzonia_date': row['uzonia_date'], 'days': row['days']}
+        else:
+            return None
+    except Exception as e:
+        print(f'Could not get uzonia data from database: {e}')
         return None
 
 
