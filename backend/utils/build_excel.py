@@ -13,12 +13,13 @@ def export_uzonia_to_excel(data: List[Dict], output_path: str) -> str:
     # ── Rename columns to match required format ─────────────────────────
     df = df.rename(columns={
         'uzonia_date': 'Sana',
-        'rate': 'UZONIA',
+        'uzonia': 'UZONIA',
         'day_7_uzonia': '7-kunlik UZONIA',
         'day_30_uzonia': '30-kunlik UZONIA',
         'day_90_uzonia': '90-kunlik UZONIA',
         'day_180_uzonia': '180-kunlik UZONIA',
         'index': 'UZONIA indeks',
+        'rate': 'Asosiy stavka'
     })
 
     # ── Keep only needed columns in correct order ───────────────────────
@@ -30,7 +31,8 @@ def export_uzonia_to_excel(data: List[Dict], output_path: str) -> str:
             '30-kunlik UZONIA',
             '90-kunlik UZONIA',
             '180-kunlik UZONIA',
-            'UZONIA indeks'
+            'UZONIA indeks',
+            'Asosiy stavka'
         ]
     ]
 

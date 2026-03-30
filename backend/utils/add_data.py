@@ -11,7 +11,7 @@ def safe_float(val):
 
 
 async def add_new_uzonia_data_to_the_db() -> bool:
-    file_path = 'data/input_data/uzonia_data_history.xlsx'
+    file_path = 'data/excels/uzonia_data_history.xlsx'
     checking_existence = await check_existence_uzonia_data()
     if checking_existence:
         return False

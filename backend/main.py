@@ -23,7 +23,8 @@ from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data
                             delete_uzonia_data, get_all_uzonia_data, edit_uzonia_data,
                             get_single_uzonia_upload, get_all_uzonia_uploads, delete_uzonia_upload, edit_uzonia_upload_status,
                             get_date_filtered_rate_uzonia, get_time_period_uzonia_data,
-                            add_new_uzonia_upload, get_latest_uzonia_data, get_last_five_uzonia, get_filtered_uzonia_data)
+                            add_new_uzonia_upload, get_latest_uzonia_data, get_last_five_uzonia, get_filtered_uzonia_data,
+                            add_new_repo_data, add_new_depo_data, get_all_repo_data, repo_data_exists, delete_repo_data)
 from utils.add_data import add_new_uzonia_data_to_the_db, add_new_holiday_data_to_the_db
 from utils.calculations import calculate_day_uzonia, calculate_cb_rate
 from utils.draw_graph import draw_graph_data
@@ -659,6 +660,43 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     repo_m_file_data = repo_m_file_data.drop(index=outdated_rows).reset_index(drop=True)
 
 
+    # --------------------------------------------------------------------------------------------------------------
+    # Processing the Deposit file
+    # --------------------------------------------------------------------------------------------------------------
+    deposit_file_data['Код сделки'] = deposit_file_data['Код сделки'].astype(str).str.strip()
+    deposit_file_data['ОперДата'] = pd.to_datetime(deposit_file_data['ОперДата'], format='%d.%m.%Y').dt.date
+    deposit_file_data['Банк(Размещение)'] = deposit_file_data['Банк(Размещение)'].astype(str).str.strip()
+    deposit_file_data['Банк(Привлечение)'] = deposit_file_data['Банк(Привлечение)'].astype(str).str.strip()
+    deposit_file_data['Сумма'] = deposit_file_data['Сумма'].astype(str).str.strip().str.replace(',', '', regex=False).astype(float)
+    deposit_file_data['Дата возврата'] = pd.to_datetime(deposit_file_data['Дата возврата'], format='%d.%m.%Y').dt.date
+    deposit_file_data['Процентная ставка'] = deposit_file_data['Процентная ставка'].astype(float)
+    deposit_file_data['Срок возврата (в днях)'] = deposit_file_data['Срок возврата (в днях)'].astype(str).str.strip()
+
+    outdated_rows = []
+    for index, row in deposit_file_data.iterrows():
+        date_in = row['ОперДата']
+        date_out = row['Дата возврата']
+        diff_days = (date_out - date_in).days
+
+        if diff_days > 1:
+            between_date = date_in + timedelta(days=1)
+            while between_date < date_out:
+                if between_date.weekday() < 5:
+                    if between_date in holidays_list:
+                        between_date = between_date + timedelta(days=1)
+                    else:
+                        outdated_rows.append(index)
+                        break
+                else:
+                    between_date = between_date + timedelta(days=1)
+        elif diff_days == 1:
+            continue
+        else:
+            outdated_rows.append(index)
+
+    deposit_file_data = deposit_file_data.drop(index=outdated_rows).reset_index(drop=True)
+    depo_unique = deposit_file_data.drop_duplicates(subset=['Код сделки'])
+
 
     # ------------------------------------------------------------------------------------------------------------------
     # Calculating Repo N and M
@@ -666,18 +704,93 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     repos_data_list = []
 
     repo_n_unique = repo_n_file_data.drop_duplicates(subset=['Номер заявки'])
-    repos_data_list.extend(
-        repo_n_unique[['Номер заявки', 'Ставка РЕПО (в % годовых)', 'Сумма РЕПО (в сумах)']].values.tolist())
+    repos_data_list.extend(repo_n_unique[['Номер заявки', 'Ставка РЕПО (в % годовых)', 'Сумма РЕПО (в сумах)']].values.tolist())
 
     repo_m_unique = repo_m_file_data.drop_duplicates(subset=['Номер заявки'])
-    repos_data_list.extend(
-        repo_m_unique[['Номер заявки', 'Ставка РЕПО (в % годовых)', 'Сумма РЕПО (в сумах)']].values.tolist())
+    repos_data_list.extend(repo_m_unique[['Номер заявки', 'Ставка РЕПО (в % годовых)', 'Сумма РЕПО (в сумах)']].values.tolist())
 
     # Sorting by rate (ascending)
     repos_data_list.sort(key=lambda x: (x[1], x[2]))
     total_value = 0
     for row_data in repos_data_list:
         total_value = total_value + row_data[2]
+
+
+    for idx, row in repo_n_unique:
+        dealer_from = next(
+            (
+                r['Инвестор']
+                for r in repo_n_file_data
+                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Продажа'
+            ),
+            None
+        )
+
+        dealer_to = next(
+            (
+                r['Инвестор']
+                for r in repo_n_file_data
+                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Покупка'
+            ),
+            None
+        )
+
+        days = row['Срок РЕПО (днях)'].replace(' день', '', regex=False).astype(int)
+        await add_new_repo_data(file_id=file_id,
+                                number_of_applications=row['Номер заявки'],
+                                date_in=row['Время подачи'],
+                                date_out=row['Время исполнения второй части'],
+                                dealer_from=dealer_from,
+                                dealer_to=dealer_to,
+                                rate=row['Ставка РЕПО (в % годовых)'],
+                                days=days,
+                                money_in=row['Сумма РЕПО (в сумах)'],
+                                money_out=row['Сумма РЕПО (в сумах)'],
+                                created_at=datetime.now(tz))
+
+    for idx, row in repo_m_unique:
+        dealer_from = next(
+            (
+                r['Дилер/Инвестор']
+                for r in repo_n_file_data
+                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Продажа'
+            ),
+            None
+        )
+
+        dealer_to = next(
+            (
+                r['Дилер/Инвестор']
+                for r in repo_n_file_data
+                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Покупка'
+            ),
+            None
+        )
+
+        days = row['Срок РЕПО (днях)'].replace(' день', '', regex=False).astype(int)
+        await add_new_repo_data(file_id=file_id,
+                                number_of_applications=row['Номер заявки'],
+                                date_in=row['Время подачи'],
+                                date_out=row['Время исполнения второй части'],
+                                dealer_from=dealer_from,
+                                dealer_to=dealer_to,
+                                rate=row['Ставка РЕПО (в % годовых)'],
+                                days=days,
+                                money_in=row['Сумма РЕПО (в сумах)'],
+                                money_out=row['Сумма РЕПО (в сумах)'],
+                                created_at=datetime.now(tz))
+
+    for idx, row in depo_unique:
+        await add_new_depo_data(file_id=file_id,
+                                number_of_applications=row['Код сделки'],
+                                date_in=row['ОперДата'],
+                                date_out=row['Дата возврата'],
+                                dealer_from=row['Банк(Размещение)'],
+                                dealer_to=row['Банк(Привлечение)'],
+                                rate=row['Процентная ставка'],
+                                days=int(row['Срок возврата (в днях)']),
+                                money=row['Сумма'],
+                                created_at=datetime.now(tz))
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -691,42 +804,6 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         uzonia_calculation_way = 1
 
     else:
-        # --------------------------------------------------------------------------------------------------------------
-        # Processing the Deposit file
-        # --------------------------------------------------------------------------------------------------------------
-        deposit_file_data['Код сделки'] = deposit_file_data['Код сделки'].astype(str).str.strip()
-        deposit_file_data['ОперДата'] = pd.to_datetime(deposit_file_data['ОперДата'], format='%d.%m.%Y').dt.date
-        deposit_file_data['Банк(Размещение)'] = deposit_file_data['Банк(Размещение)'].astype(str).str.strip()
-        deposit_file_data['Банк(Привлечение)'] = deposit_file_data['Банк(Привлечение)'].astype(str).str.strip()
-        deposit_file_data['Сумма'] = deposit_file_data['Сумма'].astype(str).str.strip().str.replace(',', '', regex=False).astype(float)
-        deposit_file_data['Дата возврата'] = pd.to_datetime(deposit_file_data['Дата возврата'], format='%d.%m.%Y').dt.date
-        deposit_file_data['Процентная ставка'] = deposit_file_data['Процентная ставка'].astype(float)
-        deposit_file_data['Срок возврата (в днях)'] = deposit_file_data['Срок возврата (в днях)'].astype(str).str.strip()
-
-        outdated_rows = []
-        for index, row in deposit_file_data.iterrows():
-            date_in = row['ОперДата']
-            date_out = row['Дата возврата']
-            diff_days = (date_out - date_in).days
-
-            if diff_days > 1:
-                between_date = date_in + timedelta(days=1)
-                while between_date < date_out:
-                    if between_date.weekday() < 5:
-                        if between_date in holidays_list:
-                            between_date = between_date + timedelta(days=1)
-                        else:
-                            outdated_rows.append(index)
-                            break
-                    else:
-                        between_date = between_date + timedelta(days=1)
-            elif diff_days == 1:
-                continue
-            else:
-                outdated_rows.append(index)
-
-        deposit_file_data = deposit_file_data.drop(index=outdated_rows).reset_index(drop=True)
-
         depo_unique = deposit_file_data.drop_duplicates(subset=['Код сделки'])
         repos_data_list.extend(depo_unique[['Код сделки', 'Процентная ставка', 'Сумма']].values.tolist())
 
@@ -830,4 +907,43 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         'day_180_uzonia': final_uzonia_data_dict['day_180_uzonia'],
         'index': final_uzonia_data_dict['index'],
     }
+
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# repo_data
+# ----------------------------------------------------------------------------------------------------------------------
+@app.get("/api/get_all_repo_data", tags=["Get All Uzonia"])
+async def get_all_repo_data_api():
+    logger.info("get_all_repo_data | Fetching all repo data")
+    all_repo_data = await get_all_repo_data()
+
+    if not all_repo_data:
+        logger.warning("get_all_repo_data | No repo data found in DB")
+        raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+    logger.info("get_all_repo_data | Returned %d records", len(all_repo_data))
+    return {"Status": 'Success', 'Data': all_repo_data}
+
+
+@app.delete("/api/delete_repo_data", tags=["Delete Repo Data"])
+async def delete_repo_data_api(file_id: str):
+    logger.info("delete_repo_data | file_id=%s", file_id)
+    if not file_id:
+        logger.warning("delete_repo_data | Missing file_id parameter")
+        raise HTTPException(status_code=400, detail="file_id parameter is required")
+
+    single_repo_data = await repo_data_exists(file_id=file_id)
+    if not single_repo_data:
+        logger.warning("delete_repo_data | Not found: file_id=%s", file_id)
+        raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+    deleted_row = await delete_repo_data(file_id=file_id)
+    if not deleted_row:
+        logger.error("delete_repo_data | DB delete failed for file_id=%s", file_id)
+        raise HTTPException(status_code=404, detail="Could not delete the repo data!")
+
+    logger.info("delete_repo_data | Deleted file_id=%s", file_id)
+    return {"Status": 'Success', 'Data': 'Deleted successfully!'}
 

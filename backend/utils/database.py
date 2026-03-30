@@ -72,7 +72,6 @@ async def init_db_pool() -> None:
                 number_of_applications   TEXT NOT NULL UNIQUE,
                 date_in                  DATE NOT NULL,
                 date_out                 DATE NOT NULL,
-                type                     TEXT NOT NULL CHECK (type IN ('buy', 'sell')),
                 dealer_from              TEXT NOT NULL,
                 dealer_to                TEXT NOT NULL,
                 days                     NUMERIC(8, 2) NOT NULL,
@@ -207,7 +206,6 @@ async def get_all_holiday_data() -> List[Dict]:
                 """
             )
             if rows:
-                print(f'Found {len(rows)} holiday data')
                 return [{'holiday_date': row['holiday_date'],
                          'description': row['description'],
                          'updated_at': row['updated_at'],
@@ -337,7 +335,6 @@ async def get_all_uzonia_data() -> List[Dict]:
                 """
             )
             if rows:
-                print(f'Found {len(rows)} holiday data')
                 return [{'file_id': row['file_id'],
                          'rate': row['rate'],
                          'uzonia': row['uzonia'],
@@ -369,7 +366,6 @@ async def get_filtered_uzonia_data(till_date: date) -> List[Dict]:
                 """, till_date
             )
             if rows:
-                print(f'Found {len(rows)} holiday data')
                 return [{'file_id': row['file_id'],
                          'rate': row['rate'],
                          'uzonia': row['uzonia'],
@@ -421,7 +417,6 @@ async def get_date_filtered_rate_uzonia(from_date: date, till_date: date) -> Lis
                 """, from_date, till_date
             )
             if rows:
-                print(f'Found {len(rows)} holiday data')
                 return [{'rate': float(row['rate']),
                          'uzonia': float(row['uzonia']),
                          'uzonia_date': row['uzonia_date']} for row in rows]
@@ -590,7 +585,6 @@ async def get_all_uzonia_uploads() -> List[Dict]:
                 """
             )
             if rows:
-                print(f'Found {len(rows)} holiday data')
                 return [{'file_id': row['file_id'],
                          'file_path': row['file_path'],
                          'status': row['status'],
@@ -604,3 +598,176 @@ async def get_all_uzonia_uploads() -> List[Dict]:
         return None
 
 
+
+# ----------------------------------------------------------------------------------------------------------------------
+# repo_data
+# ----------------------------------------------------------------------------------------------------------------------
+async def repo_data_exists(file_id: str) -> bool:
+    """Check if repo data exists."""
+    try:
+        async with pool.acquire() as conn:
+            result = await conn.fetchval(
+                """
+                SELECT 1
+                FROM repo_data
+                WHERE file_id = $1
+                LIMIT 1
+                """,
+                file_id
+            )
+        return result
+    except Exception as e:
+        print(f'Could not get repo data from database: {e}')
+        return False
+
+
+async def get_all_repo_data():
+    """Get all repo data."""
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT file_id, number_of_applications, date_in, date_out,
+                 dealer_from, dealer_to, rate, days, money_in, money_out, created_at
+                FROM repo_data
+                ORDER BY file_date DESC
+                """
+            )
+            if rows:
+                return [{'file_id': row['file_id'],
+                         'number_of_applications': row['number_of_applications'],
+                         'date_in': row['date_in'],
+                         'date_out': row['date_out'],
+                         'dealer_from': row['dealer_from'],
+                         'dealer_to': row['dealer_to'],
+                         'rate': row['rate'],
+                         'days': row['days'],
+                         'money_in': row['money_in'],
+                         'money_out': row['money_out'],
+                         'created_at': row['created_at']} for row in rows]
+            else:
+                return []
+    except Exception as e:
+        print(f'Could not get all uzonia data from database: {e}')
+        return None
+
+
+async def add_new_repo_data(file_id: str,  number_of_applications: str, date_in: date, date_out: date,
+                            dealer_from: str, dealer_to: str, rate: float, days: int, money_in: float, money_out: float, created_at: datetime) -> bool:
+    """Add new repo data."""
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO repo_data (file_id, number_of_applications, date_in, date_out,
+                 dealer_from, dealer_to, rate, days, money_in, money_out, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                """,
+                file_id, number_of_applications, date_in, date_out, dealer_from, dealer_to, rate, days, money_in, money_out, created_at
+            )
+        return True
+    except asyncpg.UniqueViolationError:
+        return False
+
+
+async def delete_repo_data(file_id: str) -> bool:
+    """Delete uzonia upload."""
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                DELETE FROM uzonia_uploads
+                WHERE file_id = $1
+                """, file_id
+            )
+        return True
+    except Exception as e:
+        print(f'Could not delete uzonia upload data from database: {e}')
+        return False
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# depo_data
+# ----------------------------------------------------------------------------------------------------------------------
+async def depo_data_exists(file_id: str) -> bool:
+    """Check if depo data exists."""
+    try:
+        async with pool.acquire() as conn:
+            result = await conn.fetchval(
+                """
+                SELECT 1
+                FROM depo_data
+                WHERE file_id = $1
+                LIMIT 1
+                """,
+                file_id
+            )
+        return result
+    except Exception as e:
+        print(f'Could not get depo data from database: {e}')
+        return False
+
+
+async def get_all_depo_data():
+    """Get all repo data."""
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT file_id, number_of_applications, date_in, date_out,
+                 dealer_from, dealer_to, rate, days, money, created_at
+                FROM repo_data
+                ORDER BY file_date DESC
+                """
+            )
+            if rows:
+                return [{'file_id': row['file_id'],
+                         'number_of_applications': row['number_of_applications'],
+                         'date_in': row['date_in'],
+                         'date_out': row['date_out'],
+                         'dealer_from': row['dealer_from'],
+                         'dealer_to': row['dealer_to'],
+                         'rate': row['rate'],
+                         'days': row['days'],
+                         'money': row['money'],
+                         'created_at': row['created_at']} for row in rows]
+            else:
+                return []
+    except Exception as e:
+        print(f'Could not get all uzonia data from database: {e}')
+        return None
+
+
+async def add_new_depo_data(file_id: str,  number_of_applications: str, date_in: date, date_out: date,
+                            dealer_from: str, dealer_to: str, rate: float, days: int, money: float, created_at: datetime) -> bool:
+    """Add new repo data."""
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO depo_data (file_id, number_of_applications, date_in, date_out,
+                 dealer_from, dealer_to, rate, days, money, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                """,
+                file_id, number_of_applications, date_in, date_out, dealer_from, dealer_to, rate, days, money, created_at
+            )
+        return True
+    except asyncpg.UniqueViolationError:
+        return False
+
+
+async def delete_depo_data(file_id: str) -> bool:
+    """Delete uzonia upload."""
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                DELETE FROM uzonia_uploads
+                WHERE file_id = $1
+                """, file_id
+            )
+        return True
+    except Exception as e:
+        print(f'Could not delete uzonia upload data from database: {e}')
+        return False
