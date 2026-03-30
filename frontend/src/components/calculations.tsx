@@ -30,11 +30,14 @@ const todayIso = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 };
 
-const fmtRate  = (n: number): string => typeof n === 'number' ? `${n.toFixed(4)}%` : '—';
-const fmtIndex = (n: number): string => typeof n === 'number' ? n.toFixed(4) : '—';
+const fmtRate  = (n: number): string => (typeof n === 'number' && !isNaN(n)) ? `${n.toFixed(4)}%` : '—';
+const fmtIndex = (n: number): string => (typeof n === 'number' && !isNaN(n)) ? n.toFixed(4) : '—';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+/**
+ * Exactly what POST /api/add_new_uzonia_calculation returns synchronously.
+ */
 interface CalcResult {
   file_id:          string;
   calculation_way:  number;
@@ -45,9 +48,6 @@ interface CalcResult {
   day_90_uzonia:    number;
   day_180_uzonia:   number;
   index:            number;
-  output_file_path: string;
-  filename:         string;
-  media_type:       string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -57,24 +57,25 @@ const CalculationsPage: React.FC = () => {
   const currentPath = '/calculations';
 
   // ── Form state ────────────────────────────────────────────────────────────
-  const [repoNFile,    setRepoNFile]    = useState<File | null>(null);
-  const [repoMFile,    setRepoMFile]    = useState<File | null>(null);
-  const [depositFile,  setDepositFile]  = useState<File | null>(null);
-  const [cbDate,       setCbDate]       = useState<string>(todayIso());
-  const [cbRate,       setCbRate]       = useState<string>('');
-  const [cbDeposit,    setCbDeposit]    = useState<string>('');
+  const [repoNFile,   setRepoNFile]   = useState<File | null>(null);
+  const [repoMFile,   setRepoMFile]   = useState<File | null>(null);
+  const [depositFile, setDepositFile] = useState<File | null>(null);
+  const [cbDate,      setCbDate]      = useState<string>(todayIso());
+  const [cbRate,      setCbRate]      = useState<string>('');
+  const [cbDeposit,   setCbDeposit]   = useState<string>('');
 
   const repoNRef   = useRef<HTMLInputElement>(null);
   const repoMRef   = useRef<HTMLInputElement>(null);
   const depositRef = useRef<HTMLInputElement>(null);
 
   // ── UI state ──────────────────────────────────────────────────────────────
-  const [isLoading,  setIsLoading]  = useState(false);
-  const [result,     setResult]     = useState<CalcResult | null>(null);
-  const [error,      setError]      = useState<string | null>(null);
-  const [toast,      setToast]      = useState<{ text: string; type: 'success'|'error'|'info' } | null>(null);
-  const [dragOver,   setDragOver]   = useState<'n'|'m'|'d'|null>(null);
-  const [progress,   setProgress]   = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [result,    setResult]    = useState<CalcResult | null>(null);
+  const [error,     setError]     = useState<string | null>(null);
+  const [toast,     setToast]     = useState<{ text: string; type: 'success'|'error'|'info' } | null>(null);
+  const [dragOver,  setDragOver]  = useState<'n'|'m'|'d'|null>(null);
+  const [progress,  setProgress]  = useState(0);
+
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // ── Fonts ─────────────────────────────────────────────────────────────────
@@ -85,12 +86,33 @@ const CalculationsPage: React.FC = () => {
     const b = document.createElement('link');
     b.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'; b.rel = 'stylesheet';
     document.head.appendChild(b);
-    return () => { try{document.head.removeChild(a);}catch{} try{document.head.removeChild(b);}catch{} };
+    return () => {
+      try { document.head.removeChild(a); } catch {}
+      try { document.head.removeChild(b); } catch {}
+    };
   }, []);
 
+  useEffect(() => {
+    return () => { if (progressRef.current) clearInterval(progressRef.current); };
+  }, []);
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
   const showToast = (text: string, type: 'success'|'error'|'info') => {
     setToast({ text, type });
     setTimeout(() => setToast(null), 4000);
+  };
+
+  // ── Progress animation ────────────────────────────────────────────────────
+  const startProgress = () => {
+    setProgress(0);
+    progressRef.current = setInterval(() => {
+      setProgress(p => p >= 90 ? 90 : p + Math.random() * 4);
+    }, 300);
+  };
+  const stopProgress = (success: boolean) => {
+    if (progressRef.current) clearInterval(progressRef.current);
+    setProgress(success ? 100 : 0);
+    setTimeout(() => setProgress(0), 1200);
   };
 
   // ── File helpers ──────────────────────────────────────────────────────────
@@ -124,19 +146,6 @@ const CalculationsPage: React.FC = () => {
     if (!/[\d.]/.test(e.key)) e.preventDefault();
   };
 
-  // ── Progress animation while loading ─────────────────────────────────────
-  const startProgress = () => {
-    setProgress(0);
-    progressRef.current = setInterval(() => {
-      setProgress(p => p >= 90 ? 90 : p + Math.random() * 4);
-    }, 300);
-  };
-  const stopProgress = (success: boolean) => {
-    if (progressRef.current) clearInterval(progressRef.current);
-    setProgress(success ? 100 : 0);
-    setTimeout(() => setProgress(0), 1200);
-  };
-
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!repoNFile || !repoMFile || !depositFile) {
@@ -148,7 +157,7 @@ const CalculationsPage: React.FC = () => {
     if (!cbRate || isNaN(parseFloat(cbRate))) {
       showToast('Please enter a valid CB Rate.', 'error'); return;
     }
-    if (!cbDeposit || isNaN(parseFloat(cbDeposit))) {
+    if (!cbDeposit || isNaN(parseFloat(cbDeposit.replace(/\s/g, '')))) {
       showToast('Please enter a valid CB Deposit.', 'error'); return;
     }
 
@@ -158,31 +167,21 @@ const CalculationsPage: React.FC = () => {
     startProgress();
 
     try {
-      // Format date to DD.MM.YYYY for the API
-      const [y,m,d] = cbDate.split('-');
-      const formattedDate = `${y}-${m}-${d}`;
-
       const formData = new FormData();
       formData.append('repo_n_file',  repoNFile);
       formData.append('repo_m_file',  repoMFile);
       formData.append('deposit_file', depositFile);
-      formData.append('cb_date',  formattedDate);
-      formData.append('cb_rate',  cbRate);
-      formData.append('cb_deposit', cbDeposit);
+      formData.append('cb_date',    cbDate);
+      formData.append('cb_rate',    cbRate);
+      formData.append('cb_deposit', cbDeposit.replace(/\s/g, '')); // strip formatting spaces before sending
 
-      const params = new URLSearchParams({
-        cb_date:    formattedDate,
-        cb_rate:    cbRate,
-        cb_deposit: cbDeposit,
+      const res = await fetch(`${API_BASE_URL}/api/add_new_uzonia_calculation`, {
+        method: 'POST',
+        body: formData,
       });
 
-      const res = await fetch(
-        `${API_BASE_URL}/api/add_new_uzonia_calculation?`,
-        { method: 'POST', body: formData }
-      );
-
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
         throw new Error(err.detail || 'Calculation failed.');
       }
 
@@ -190,6 +189,7 @@ const CalculationsPage: React.FC = () => {
       stopProgress(true);
       setResult(data);
       showToast('Calculation completed successfully!', 'success');
+
     } catch (err: any) {
       stopProgress(false);
       setError(err.message || 'An unexpected error occurred.');
@@ -199,38 +199,19 @@ const CalculationsPage: React.FC = () => {
     }
   };
 
-  // ── Download ──────────────────────────────────────────────────────────────
-  const handleDownload = async () => {
-    if (!result) return;
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/api/download_uzonia_file?file_id=${result.file_id}`
-      );
-      if (!res.ok) throw new Error('Download failed.');
-      const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = result.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      showToast('Download started!', 'success');
-    } catch (err: any) {
-      showToast(err.message || 'Download failed.', 'error');
-    }
-  };
-
   // ── Reset ─────────────────────────────────────────────────────────────────
   const handleReset = () => {
     setRepoNFile(null); setRepoMFile(null); setDepositFile(null);
     setCbDate(todayIso()); setCbRate(''); setCbDeposit('');
-    setResult(null); setError(null);
+    setResult(null); setError(null); setProgress(0);
     if (repoNRef.current)   repoNRef.current.value   = '';
     if (repoMRef.current)   repoMRef.current.value   = '';
     if (depositRef.current) depositRef.current.value = '';
   };
+
+  // ── Derived ───────────────────────────────────────────────────────────────
+  const allFilesUploaded = repoNFile && repoMFile && depositFile;
+  const formReady        = allFilesUploaded && cbDate && cbRate && cbDeposit;
 
   // ── Styles ────────────────────────────────────────────────────────────────
   const inputStyle: React.CSSProperties = {
@@ -249,7 +230,7 @@ const CalculationsPage: React.FC = () => {
     return              { label: 'Way 3 — With CB Deposit supplement',       color: '#92400e', bg: '#fef3c7' };
   };
 
-  // ── Nav pill ──────────────────────────────────────────────────────────────
+  // ─── Nav pill ─────────────────────────────────────────────────────────────
   const NavBtn = ({ page }: { page: typeof NAV_PAGES[0] }) => {
     const active = page.path === currentPath;
     return (
@@ -262,8 +243,8 @@ const CalculationsPage: React.FC = () => {
         fontSize: '14px', fontWeight: active ? '600' : '400',
         cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s', outline: 'none',
       }}
-      onMouseEnter={e => { if(!active){e.currentTarget.style.background='rgba(255,255,255,0.10)'; e.currentTarget.style.color='white';} }}
-      onMouseLeave={e => { if(!active){e.currentTarget.style.background='transparent'; e.currentTarget.style.color='rgba(255,255,255,0.65)';} }}
+      onMouseEnter={e => { if (!active) { e.currentTarget.style.background='rgba(255,255,255,0.10)'; e.currentTarget.style.color='white'; }}}
+      onMouseLeave={e => { if (!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='rgba(255,255,255,0.65)'; }}}
       >
         <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>{page.icon}</span>
         {page.label}
@@ -272,19 +253,17 @@ const CalculationsPage: React.FC = () => {
   };
 
   // ── Drop zone ─────────────────────────────────────────────────────────────
-  const DropZone = ({
-    slot, file, label, description, icon,
-  }: {
+  const DropZone = ({ slot, file, label, description, icon }: {
     slot: 'n'|'m'|'d'; file: File|null; label: string; description: string; icon: string;
   }) => {
-    const ref = slot==='n' ? repoNRef : slot==='m' ? repoMRef : depositRef;
+    const ref    = slot==='n' ? repoNRef : slot==='m' ? repoMRef : depositRef;
     const isOver = dragOver === slot;
     return (
       <div
-        onDragOver={e => { e.preventDefault(); setDragOver(slot); }}
+        onDragOver={e => { if (!isLoading) { e.preventDefault(); setDragOver(slot); }}}
         onDragLeave={() => setDragOver(null)}
-        onDrop={e => handleFileDrop(e, slot)}
-        onClick={() => ref.current?.click()}
+        onDrop={e => { if (!isLoading) handleFileDrop(e, slot); }}
+        onClick={() => { if (!isLoading) ref.current?.click(); }}
         style={{
           flex: '1 1 0', minWidth: '200px',
           border: `2px dashed ${file ? '#10b981' : isOver ? '#0a3b5c' : '#cbd5e1'}`,
@@ -292,40 +271,29 @@ const CalculationsPage: React.FC = () => {
           background: file ? '#f0fdf4' : isOver ? '#eff6ff' : '#f8fafc',
           padding: '22px 16px',
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-          cursor: 'pointer', transition: 'all 0.2s',
-          textAlign: 'center',
+          cursor: isLoading ? 'not-allowed' : 'pointer',
+          opacity: isLoading ? 0.6 : 1,
+          transition: 'all 0.2s', textAlign: 'center',
           boxShadow: file ? '0 2px 12px rgba(16,185,129,0.1)' : isOver ? '0 2px 12px rgba(10,59,92,0.1)' : 'none',
         }}
       >
         <div style={{
           width: '44px', height: '44px', borderRadius: '12px',
           background: file ? '#d1fae5' : isOver ? '#dbeafe' : '#e2e8f0',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'all 0.2s',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s',
         }}>
-          <span className="material-symbols-outlined" style={{
-            fontSize: '22px',
-            color: file ? '#065f46' : isOver ? '#1e40af' : '#64748b',
-          }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '22px', color: file ? '#065f46' : isOver ? '#1e40af' : '#64748b' }}>
             {file ? 'check_circle' : icon}
           </span>
         </div>
 
         <div>
-          <div style={{ fontWeight: '600', fontSize: '13px', color: file ? '#065f46' : '#1e3a52', marginBottom: '3px' }}>
-            {label}
-          </div>
-          <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
-            {description}
-          </div>
+          <div style={{ fontWeight: '600', fontSize: '13px', color: file ? '#065f46' : '#1e3a52', marginBottom: '3px' }}>{label}</div>
+          <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>{description}</div>
         </div>
 
         {file ? (
-          <div style={{
-            background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '8px',
-            padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '5px',
-            maxWidth: '100%',
-          }}>
+          <div style={{ background: '#d1fae5', border: '1px solid #6ee7b7', borderRadius: '8px', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: '5px', maxWidth: '100%' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '13px', color: '#065f46', flexShrink: 0 }}>description</span>
             <span style={{ fontSize: '11px', color: '#065f46', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
               {file.name}
@@ -333,28 +301,22 @@ const CalculationsPage: React.FC = () => {
             <button
               onClick={e => {
                 e.stopPropagation();
-                if (slot==='n') { setRepoNFile(null); if(repoNRef.current) repoNRef.current.value=''; }
-                if (slot==='m') { setRepoMFile(null); if(repoMRef.current) repoMRef.current.value=''; }
-                if (slot==='d') { setDepositFile(null); if(depositRef.current) depositRef.current.value=''; }
+                if (isLoading) return;
+                if (slot==='n') { setRepoNFile(null);   if (repoNRef.current)   repoNRef.current.value   = ''; }
+                if (slot==='m') { setRepoMFile(null);   if (repoMRef.current)   repoMRef.current.value   = ''; }
+                if (slot==='d') { setDepositFile(null); if (depositRef.current) depositRef.current.value = ''; }
               }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#065f46', display: 'flex', alignItems: 'center', padding: '0 2px', marginLeft: '2px', flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', cursor: isLoading ? 'not-allowed' : 'pointer', color: '#065f46', display: 'flex', alignItems: 'center', padding: '0 2px', marginLeft: '2px', flexShrink: 0 }}
             >
               <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>close</span>
             </button>
           </div>
         ) : (
-          <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-            {isOver ? 'Drop here' : 'Click or drag & drop'}
-          </span>
+          <span style={{ fontSize: '11px', color: '#94a3b8' }}>{isOver ? 'Drop here' : 'Click or drag & drop'}</span>
         )}
 
-        <input
-          ref={ref}
-          type="file"
-          accept=".xlsx,.xls"
-          style={{ display: 'none' }}
-          onChange={e => handleFileInput(e, slot)}
-        />
+        <input ref={ref} type="file" accept=".xlsx,.xls" style={{ display: 'none' }}
+          onChange={e => handleFileInput(e, slot)} disabled={isLoading} />
       </div>
     );
   };
@@ -363,17 +325,13 @@ const CalculationsPage: React.FC = () => {
   const ResultCard = ({ label, value, icon, color, bg }: {
     label: string; value: string; icon: string; color: string; bg: string;
   }) => (
-    <div style={{
-      background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px',
-      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-    }}>
+    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
       <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <span className="material-symbols-outlined" style={{ fontSize: '18px', color }}>{icon}</span>
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: '10px', color: '#64748b', marginBottom: '2px', letterSpacing: '0.3px' }}>{label}</div>
-        <div style={{ fontSize: '14px', fontWeight: '700', color, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{value}</div>
+        <div style={{ fontSize: '15px', fontWeight: '700', color, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{value}</div>
       </div>
     </div>
   );
@@ -397,29 +355,26 @@ const CalculationsPage: React.FC = () => {
     {
       heading: 'Services',
       items: [
-        { label: 'Exchange Rates',  href: 'https://cbu.uz/en/arkhiv-kursov-valyut/',                 icon: 'currency_exchange', external: true },
-        { label: 'Key Rate',        href: 'https://cbu.uz/en/monetary-policy/refinancing-rate/',     icon: 'percent',           external: true },
-        { label: 'Payment Systems', href: 'https://cbu.uz/en/payment-systems/',                      icon: 'payments',          external: true },
-        { label: 'Licensing',       href: 'https://cbu.uz/en/credit-organizations/licensing/',       icon: 'verified',          external: true },
-        { label: 'Press Centre',    href: 'https://cbu.uz/en/press_center/',                         icon: 'newspaper',         external: true },
+        { label: 'Exchange Rates',  href: 'https://cbu.uz/en/arkhiv-kursov-valyut/',             icon: 'currency_exchange', external: true },
+        { label: 'Key Rate',        href: 'https://cbu.uz/en/monetary-policy/refinancing-rate/', icon: 'percent',           external: true },
+        { label: 'Payment Systems', href: 'https://cbu.uz/en/payment-systems/',                  icon: 'payments',          external: true },
+        { label: 'Licensing',       href: 'https://cbu.uz/en/credit-organizations/licensing/',   icon: 'verified',          external: true },
+        { label: 'Press Centre',    href: 'https://cbu.uz/en/press_center/',                     icon: 'newspaper',         external: true },
       ],
     },
     {
       heading: 'Contact',
       items: [
-        { label: '+998 71 212-62-05',   href: 'tel:+998712126205',                             icon: 'call',        external: false },
-        { label: '+998 71 200-00-44',   href: 'tel:+998712000044',                             icon: 'call',        external: false },
-        { label: '+998 71 233-35-09',   href: 'fax:+998712333509',                             icon: 'fax',         external: false },
-        { label: 'info@cbu.uz',         href: 'mailto:info@cbu.uz',                            icon: 'mail',        external: false },
-        { label: 'Islam Karimov St. 6', href: 'https://maps.app.goo.gl/4qDXnjgQoTwfWCg28',   icon: 'location_on', external: true  },
+        { label: '+998 71 212-62-05',   href: 'tel:+998712126205',                           icon: 'call',        external: false },
+        { label: '+998 71 200-00-44',   href: 'tel:+998712000044',                           icon: 'call',        external: false },
+        { label: '+998 71 233-35-09',   href: 'fax:+998712333509',                           icon: 'fax',         external: false },
+        { label: 'info@cbu.uz',         href: 'mailto:info@cbu.uz',                          icon: 'mail',        external: false },
+        { label: 'Islam Karimov St. 6', href: 'https://maps.app.goo.gl/4qDXnjgQoTwfWCg28', icon: 'location_on', external: true  },
       ],
     },
   ];
 
   // ─── Render ───────────────────────────────────────────────────────────────
-  const allFilesUploaded = repoNFile && repoMFile && depositFile;
-  const formReady = allFilesUploaded && cbDate && cbRate && cbDeposit;
-
   return (
     <div style={{ minHeight: '100vh', width: '100%', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', backgroundColor: '#f8fafc', fontFamily: '"Inter","Segoe UI",system-ui,-apple-system,sans-serif' }}>
 
@@ -457,10 +412,11 @@ const CalculationsPage: React.FC = () => {
         </nav>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: '16px', flexShrink: 0 }}>
           {[
-            { icon: 'arrow_back', label: 'Back', onClick: () => window.history.back() },
+            { icon: 'arrow_back',     label: 'Back',  onClick: () => window.history.back() },
             { icon: 'account_circle', label: 'Login', onClick: () => {} },
           ].map(b => (
-            <button key={b.label} onClick={b.onClick} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.65)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', cursor: 'pointer', padding: '7px 12px', borderRadius: '8px', transition: 'all 0.15s' }}
+            <button key={b.label} onClick={b.onClick}
+              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.65)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', cursor: 'pointer', padding: '7px 12px', borderRadius: '8px', transition: 'all 0.15s' }}
               onMouseEnter={e => { e.currentTarget.style.color='white'; e.currentTarget.style.background='rgba(255,255,255,0.08)'; }}
               onMouseLeave={e => { e.currentTarget.style.color='rgba(255,255,255,0.65)'; e.currentTarget.style.background='transparent'; }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>{b.icon}</span>{b.label}
@@ -541,38 +497,22 @@ const CalculationsPage: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <DropZone
-                    slot="n" file={repoNFile}
-                    label="Repo N File"
-                    description="Bilateral REPO transactions (overnight)"
-                    icon="table_chart"
-                  />
-                  <DropZone
-                    slot="m" file={repoMFile}
-                    label="Repo M File"
-                    description="Market-maker REPO transactions"
-                    icon="show_chart"
-                  />
-                  <DropZone
-                    slot="d" file={depositFile}
-                    label="Deposit File"
-                    description="Interbank overnight deposit data"
-                    icon="savings"
-                  />
+                  <DropZone slot="n" file={repoNFile}   label="Repo N File"  description="Bilateral REPO transactions (overnight)" icon="table_chart" />
+                  <DropZone slot="m" file={repoMFile}   label="Repo M File"  description="Market-maker REPO transactions"          icon="show_chart"  />
+                  <DropZone slot="d" file={depositFile} label="Deposit File" description="Interbank overnight deposit data"        icon="savings"     />
                 </div>
 
-                {/* Upload checklist */}
                 <div style={{ marginTop: '14px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {[
-                    { label: 'Repo N', done: !!repoNFile },
-                    { label: 'Repo M', done: !!repoMFile },
+                    { label: 'Repo N',  done: !!repoNFile   },
+                    { label: 'Repo M',  done: !!repoMFile   },
                     { label: 'Deposit', done: !!depositFile },
                   ].map(item => (
                     <span key={item.label} style={{
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
                       padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '500',
                       background: item.done ? '#d1fae5' : '#f1f5f9',
-                      color: item.done ? '#065f46' : '#94a3b8',
+                      color:      item.done ? '#065f46' : '#94a3b8',
                       border: `1px solid ${item.done ? '#6ee7b7' : '#e2e8f0'}`,
                     }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>
@@ -592,40 +532,25 @@ const CalculationsPage: React.FC = () => {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px' }}>
-
                   {/* Date */}
                   <div>
-                    <label style={labelStyle}>
-                      CB Date <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
+                    <label style={labelStyle}>CB Date <span style={{ color: '#dc2626' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
                       <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>event</span>
-                      <input
-                        type="date"
-                        value={cbDate}
-                        onChange={e => setCbDate(e.target.value)}
-                        style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace', colorScheme: 'light' }}
-                      />
+                      <input type="date" value={cbDate} onChange={e => setCbDate(e.target.value)} disabled={isLoading}
+                        style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace', colorScheme: 'light', opacity: isLoading ? 0.6 : 1 }} />
                     </div>
                     <div style={{ marginTop: '4px', fontSize: '11px', color: '#94a3b8' }}>Defaults to today</div>
                   </div>
 
                   {/* CB Rate */}
                   <div>
-                    <label style={labelStyle}>
-                      CB Rate (%) <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
+                    <label style={labelStyle}>CB Rate (%) <span style={{ color: '#dc2626' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
                       <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>percent</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={cbRate}
-                        onChange={e => setCbRate(e.target.value)}
-                        onKeyDown={numericKeyDown}
-                        placeholder="e.g. 14.00"
-                        style={{ ...inputStyle, paddingLeft: '34px', paddingRight: '32px', fontFamily: 'monospace' }}
-                      />
+                      <input type="text" inputMode="decimal" value={cbRate} onChange={e => setCbRate(e.target.value)}
+                        onKeyDown={numericKeyDown} placeholder="e.g. 14.00" disabled={isLoading}
+                        style={{ ...inputStyle, paddingLeft: '34px', paddingRight: '32px', fontFamily: 'monospace', opacity: isLoading ? 0.6 : 1 }} />
                       <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#94a3b8', pointerEvents: 'none' }}>%</span>
                     </div>
                     <div style={{ marginTop: '4px', fontSize: '11px', color: '#94a3b8' }}>Central Bank base rate</div>
@@ -633,23 +558,17 @@ const CalculationsPage: React.FC = () => {
 
                   {/* CB Deposit */}
                   <div>
-                    <label style={labelStyle}>
-                      CB Deposit (UZS) <span style={{ color: '#dc2626' }}>*</span>
-                    </label>
+                    <label style={labelStyle}>CB Deposit (UZS) <span style={{ color: '#dc2626' }}>*</span></label>
                     <div style={{ position: 'relative' }}>
                       <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>account_balance</span>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        value={cbDeposit}
+                      <input type="text" inputMode="decimal" value={cbDeposit}
                         onChange={e => {
-                            const numeric = e.target.value.replace(/\D/g, "");
-                            const formatted = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-                            setCbDeposit(formatted)}}
-                        onKeyDown={numericKeyDown}
-                        placeholder="e.g. 500 000 000 000"
-                        style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace' }}
-                      />
+                          const numeric   = e.target.value.replace(/\D/g, '');
+                          const formatted = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+                          setCbDeposit(formatted);
+                        }}
+                        onKeyDown={numericKeyDown} placeholder="e.g. 500 000 000 000" disabled={isLoading}
+                        style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace', opacity: isLoading ? 0.6 : 1 }} />
                     </div>
                     <div style={{ marginTop: '4px', fontSize: '11px', color: '#94a3b8' }}>Total CB overnight deposit</div>
                   </div>
@@ -661,13 +580,8 @@ const CalculationsPage: React.FC = () => {
                 onClick={handleSubmit}
                 disabled={isLoading || !formReady}
                 style={{
-                  width: '100%', padding: '14px 20px',
-                  fontSize: '15px', fontWeight: '700',
-                  background: isLoading
-                    ? '#94a3b8'
-                    : !formReady
-                    ? '#cbd5e1'
-                    : 'linear-gradient(135deg, #0a3b5c 0%, #1a6494 100%)',
+                  width: '100%', padding: '14px 20px', fontSize: '15px', fontWeight: '700',
+                  background: isLoading ? '#94a3b8' : !formReady ? '#cbd5e1' : 'linear-gradient(135deg, #0a3b5c 0%, #1a6494 100%)',
                   color: 'white', border: 'none', borderRadius: '12px',
                   cursor: isLoading || !formReady ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -711,7 +625,10 @@ const CalculationsPage: React.FC = () => {
                     <div>
                       <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '11px', marginBottom: '2px' }}>Date</div>
                       <div style={{ fontFamily: 'monospace', fontWeight: '600' }}>
-                        {(() => { const p = result.uzonia_date?.split('T')[0]?.split('-'); return p ? `${p[2]}/${p[1]}/${p[0]}` : result.uzonia_date; })()}
+                        {(() => {
+                          const p = String(result.uzonia_date).split('T')[0].split('-');
+                          return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : result.uzonia_date;
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -735,58 +652,31 @@ const CalculationsPage: React.FC = () => {
                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#0a3b5c' }}>Calculated Rates</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <ResultCard label="UZONIA (Overnight)"   value={fmtRate(result.uzonia)}         icon="bolt"         color="#1d4ed8" bg="#dbeafe" />
-                    <ResultCard label="7-Day UZONIA"         value={fmtRate(result.day_7_uzonia)}   icon="date_range"   color="#15803d" bg="#d1fae5" />
-                    <ResultCard label="30-Day UZONIA"        value={fmtRate(result.day_30_uzonia)}  icon="calendar_month" color="#a16207" bg="#fef3c7" />
-                    <ResultCard label="90-Day UZONIA"        value={fmtRate(result.day_90_uzonia)}  icon="event_note"   color="#7e22ce" bg="#f3e8ff" />
-                    <ResultCard label="180-Day UZONIA"       value={fmtRate(result.day_180_uzonia)} icon="event"        color="#c2410c" bg="#ffedd5" />
-                    <ResultCard label="UZONIA Index"         value={fmtIndex(result.index)}         icon="functions"    color="#0a3b5c" bg="#e0f2fe" />
+                    <ResultCard label="UZONIA (Overnight)"  value={fmtRate(result.uzonia)}         icon="bolt"           color="#1d4ed8" bg="#dbeafe" />
+                    <ResultCard label="7-Day UZONIA"        value={fmtRate(result.day_7_uzonia)}   icon="date_range"     color="#15803d" bg="#d1fae5" />
+                    <ResultCard label="30-Day UZONIA"       value={fmtRate(result.day_30_uzonia)}  icon="calendar_month" color="#a16207" bg="#fef3c7" />
+                    <ResultCard label="90-Day UZONIA"       value={fmtRate(result.day_90_uzonia)}  icon="event_note"     color="#7e22ce" bg="#f3e8ff" />
+                    <ResultCard label="180-Day UZONIA"      value={fmtRate(result.day_180_uzonia)} icon="event"          color="#c2410c" bg="#ffedd5" />
+                    <ResultCard label="UZONIA Index"        value={fmtIndex(result.index)}         icon="functions"      color="#0a3b5c" bg="#e0f2fe" />
                   </div>
                 </div>
 
-                {/* Download */}
-                <div style={{ background: 'white', borderRadius: '14px', padding: '18px', boxShadow: '0 2px 10px rgba(0,40,70,0.06)', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#0a3b5c' }}>folder_zip</span>
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#0a3b5c' }}>Output Files</span>
-                  </div>
-
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', background: '#fff7ed', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#c2410c' }}>folder_zip</span>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#0f172a', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {result.filename}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                        Contains PNG image + Excel report
-                      </div>
+                {/* Saved to DB confirmation */}
+                <div style={{ background: '#f0fdf4', border: '1px solid #6ee7b7', borderRadius: '12px', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#065f46', flexShrink: 0 }}>storage</span>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#065f46' }}>Saved to database</div>
+                    <div style={{ fontSize: '11px', color: '#047857', marginTop: '2px' }}>
+                      Results are stored and available in the Data module.
                     </div>
                   </div>
-
-                  <button
-                    onClick={handleDownload}
-                    style={{
-                      width: '100%', padding: '11px 16px',
-                      fontSize: '14px', fontWeight: '600',
-                      background: 'linear-gradient(135deg, #e9b741, #d4a017)',
-                      color: '#0a3b5c', border: 'none', borderRadius: '10px',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
-                      boxShadow: '0 3px 12px rgba(233,183,65,0.4)', transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.transform='translateY(-1px)'; e.currentTarget.style.boxShadow='0 5px 18px rgba(233,183,65,0.55)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform='translateY(0)'; e.currentTarget.style.boxShadow='0 3px 12px rgba(233,183,65,0.4)'; }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '17px' }}>download</span>
-                    Download Results (.zip)
-                  </button>
                 </div>
+
               </div>
             )}
           </div>
 
-          {/* ── How it works — only when no result yet ── */}
+          {/* ── How it works — only when no result and not loading ── */}
           {!result && !isLoading && (
             <div style={{ marginTop: '24px', background: 'white', borderRadius: '14px', padding: '20px 22px', boxShadow: '0 2px 10px rgba(0,40,70,0.06)', border: '1px solid #e2e8f0' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
@@ -795,21 +685,9 @@ const CalculationsPage: React.FC = () => {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
                 {[
-                  {
-                    way: 'Way 1', icon: 'looks_one', color: '#065f46', bg: '#d1fae5',
-                    condition: 'Total Repo volume ≥ 500B UZS and ≥ 5 transactions',
-                    desc: 'Uses only Repo N + M data. Bottom 10% trimmed, weighted average computed.',
-                  },
-                  {
-                    way: 'Way 2', icon: 'looks_two', color: '#1e40af', bg: '#dbeafe',
-                    condition: 'Repo + Deposit combined ≥ 500B UZS',
-                    desc: 'Combines Repo and Deposit data. Same trimming and weighting methodology.',
-                  },
-                  {
-                    way: 'Way 3', icon: 'looks_3', color: '#92400e', bg: '#fef3c7',
-                    condition: 'Total volume falls below threshold',
-                    desc: 'CB deposit supplement added to reach volume. CB Rate used as the reference.',
-                  },
+                  { way: 'Way 1', icon: 'looks_one', color: '#065f46', bg: '#d1fae5', condition: 'Total Repo volume ≥ 500B UZS and ≥ 5 transactions', desc: 'Uses only Repo N + M data. Bottom 10% trimmed, weighted average computed.' },
+                  { way: 'Way 2', icon: 'looks_two', color: '#1e40af', bg: '#dbeafe', condition: 'Repo + Deposit combined ≥ 500B UZS',                  desc: 'Combines Repo and Deposit data. Same trimming and weighting methodology.' },
+                  { way: 'Way 3', icon: 'looks_3',   color: '#92400e', bg: '#fef3c7', condition: 'Total volume falls below threshold',                  desc: 'CB deposit supplement added to reach volume. CB Rate used as the reference.' },
                 ].map(item => (
                   <div key={item.way} style={{ background: item.bg, border: `1px solid ${item.color}22`, borderRadius: '10px', padding: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
@@ -830,8 +708,6 @@ const CalculationsPage: React.FC = () => {
       {/* ═══ FOOTER ═══ */}
       <footer style={{ width: '100%', background: '#0a2a40', borderTop: '3px solid #e9b741', boxSizing: 'border-box' }}>
         <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto', padding: '40px 32px 28px', display: 'grid', gridTemplateColumns: '280px repeat(4, 1fr)', gap: '48px', alignItems: 'start' }}>
-
-          {/* Brand */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
               <img src={CbuLogo} alt="CBU" style={{ width: '40px', height: '40px', objectFit: 'contain', background: 'white', borderRadius: '9px', padding: '4px', flexShrink: 0 }} />
@@ -850,7 +726,7 @@ const CalculationsPage: React.FC = () => {
                 { src: youtube,   alt: 'YouTube',   href: 'https://www.youtube.com/centralbankofuzbekistan', w: 30 },
               ].map(s => (
                 <a key={s.alt} href={s.href} target="_blank" rel="noopener noreferrer"
-                  style={{ width: '32px', height: '32px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}
+                  style={{ width: '32px', height: '32px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s', background: 'rgba(255,255,255,0.07)' }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.16)'; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)'; }}>
                   <img src={s.src} alt={s.alt} style={{ width: `${s.w}px`, height: `${s.w}px`, objectFit: 'contain' }} />
@@ -859,7 +735,6 @@ const CalculationsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 4 link columns */}
           {footerColumns.map(col => (
             <div key={col.heading}>
               <div style={{ color: 'white', fontSize: '14px', fontWeight: '600', marginBottom: '16px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
@@ -869,7 +744,8 @@ const CalculationsPage: React.FC = () => {
                 {col.items.map((item: any, i: number) => (
                   <li key={i} style={{ marginBottom: '9px', marginLeft: '55px' }}>
                     {item.onClick ? (
-                      <button onClick={item.onClick} style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '7px', fontSize: '14px', color: item.active ? '#e9b741' : '#8097a8', fontWeight: item.active ? '600' : '400', cursor: 'pointer', transition: 'color 0.15s' }}
+                      <button onClick={item.onClick}
+                        style={{ background: 'none', border: 'none', padding: 0, display: 'flex', alignItems: 'center', gap: '7px', fontSize: '14px', color: item.active ? '#e9b741' : '#8097a8', fontWeight: item.active ? '600' : '400', cursor: 'pointer', transition: 'color 0.15s' }}
                         onMouseEnter={e => { e.currentTarget.style.color = 'white'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = item.active ? '#e9b741' : '#8097a8'; }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '14px', flexShrink: 0 }}>{item.icon}</span>
@@ -891,7 +767,6 @@ const CalculationsPage: React.FC = () => {
           ))}
         </div>
 
-        {/* Bottom bar */}
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '14px 32px' }}>
           <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#4a5c6a', flexWrap: 'wrap', gap: '8px' }}>
             <span>© 2026 Central Bank of the Republic of Uzbekistan. All rights reserved.</span>

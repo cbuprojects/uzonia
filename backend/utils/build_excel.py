@@ -41,7 +41,7 @@ def export_uzonia_to_excel(data: List[Dict], output_path: str) -> str:
         df[col] = df[col].astype(float)
 
     # ── Sort by date ascending (optional, nicer for Excel) ──────────────
-    df = df.sort_values(by='Sana')
+    df = df.sort_values(by='Sana', ascending=False)
 
     # ── Save to Excel ───────────────────────────────────────────────────
     with pd.ExcelWriter(output_path, engine='openpyxl') as writer:

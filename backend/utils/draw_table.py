@@ -39,8 +39,8 @@ PERIOD_ROW2_VALUE_Y = 1670
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
-    candidates_bold = "../data/input_data/fonts/arialbd.ttf"
-    candidates_normal = "../data/input_data/fonts/arial.ttf"
+    candidates_bold = "data/input_data/fonts/arialbd.ttf"
+    candidates_normal = "data/input_data/fonts/arial.ttf"
     if bold:
         path = candidates_bold
     else:
@@ -119,8 +119,7 @@ def _fmt_date(d) -> str:
 
 # ── Main function ─────────────────────────────────────────────────────────────
 
-def draw_table_data(table_data: dict, input_path: str,
-                    output_path: Optional[str] = None) -> str:
+def draw_table_data(table_data: dict, input_path: str, output_path: Optional[str] = None) -> str:
     """
     Draw all table values onto the UZONIA background image.
 
@@ -280,54 +279,3 @@ def draw_table_data(table_data: dict, input_path: str,
     img = img.convert("RGB")
     img.save(output_path)
     return output_path
-
-
-
-# ── Sample table_data ─────────────────────────────────────────────────────────
-# Built from Book1.xlsx real values (18.03.2026 and 17.03.2026)
-# Multi-tenor rates (7d/30d/90d/180d) and index come from the uzonia_data DB table;
-# representative values derived from the real 1-day rate are used here.
-#
-# Period reference points (from DB):
-#   1 haftalik  → 11.03.2026 : 13.6467%
-#   1 oylik     → 16.02.2026 : 13.5364%
-#   3 oylik     → 18.12.2025 : 13.8013%
-#   6 oylik     → 19.09.2025 : 13.6167%
-#   YTD base    → 30.12.2025 : 13.5181%  (last working day of 2025)
-#   1 yillik    → 18.03.2025 : 12.7919%
-
-table_data = {
-    # ── Current date row (18/03/2026) ─────────────────────────────────────────
-    'uzonia_date':        date(2026, 3, 18),
-    'day_uzonia':         13.7091,   # 1-day UZONIA rate
-    'day_7_uzonia':       13.4591,   # 7-day rate
-    'day_30_uzonia':      13.6791,   # 30-day rate
-    'day_90_uzonia':      14.0191,   # 90-day rate
-    'day_180_uzonia':     14.0791,   # 180-day rate
-    'index':              176.4200,  # UZONIA index (05.01.2022=100)
-
-    # ── Previous working day row (17/03/2026) ──────────────────────────────────
-    'prev_uzonia_date':   date(2026, 3, 17),
-    'prev_day_uzonia':    13.7290,
-    'prev_day_7_uzonia':  13.4490,
-    'prev_day_30_uzonia': 13.6790,
-    'prev_day_90_uzonia': 14.0190,
-    'prev_day_180_uzonia':14.0790,
-    'prev_index':         176.3537,
-
-    # ── O'zgarishi / Change row  (current − previous) ─────────────────────────
-    'day_1_diff':        -0.0199,   # red   ▼
-    'day_7_diff':         0.0101,   # green ▲
-    'day_30_diff':        0.0001,   # green ▲
-    'day_90_diff':        0.0001,   # green ▲
-    'day_180_diff':       0.0001,   # green ▲
-    'index_diff':         0.0663,   # green ▲
-
-    # ── Period changes  (current 1-day rate − rate N periods ago) ─────────────
-    'period_7_diff':      0.0624,   # ▲  1 haftalik/week   (vs 11.03.2026)
-    'period_30_diff':     0.1727,   # ▲  1 oylik/month     (vs 16.02.2026)
-    'period_90_diff':    -0.0922,   # ▼  3 oylik/month     (vs 18.12.2025)
-    'period_180_diff':    0.0924,   # ▲  6 oylik/month     (vs 19.09.2025)
-    'period_ytd_diff':    0.1910,   # ▲  Joriy yil boshidan/YTD (vs 30.12.2025)
-    'period_365_diff':    0.9172,   # ▲  1 yillik/year     (vs 18.03.2025)
-}

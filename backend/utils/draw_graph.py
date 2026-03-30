@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw, ImageFont
 from datetime import date, datetime
 from typing import List, Dict
 import math
+import os
 
 
 # ──────────────────────────────────────────────
@@ -35,8 +36,8 @@ Y_STEP =  1.0   # %
 
 def _load_font(size: int, bold: bool = False):
     """Try to load a system font, fall back to PIL default."""
-    candidates_bold = "../data/input_data/fonts/arialbd.ttf"
-    candidates_normal = "../data/input_data/fonts/arial.ttf"
+    candidates_bold = "data/input_data/fonts/arialbd.ttf"
+    candidates_normal = "data/input_data/fonts/arial.ttf"
     if bold:
         path = candidates_bold
     else:
@@ -106,14 +107,18 @@ def draw_graph_data(filtered_image_data: List[Dict], background_path: str, outpu
     if not filtered_image_data:
         raise ValueError("filtered_image_data is empty")
 
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+
     # ── Sort by date ──────────────────────────────────────────────────────────
     data = sorted(filtered_image_data, key=lambda r: r["uzonia_date"])
-    rates   = [float(r["rate"]) for r in data]
+    rates   = [float(r["uzonia"]) for r in data]
     dates   = [r["uzonia_date"] for r in data]
     n       = len(data)
 
+
     # Dynamic base rate & corridor (±2) — read from data if present, else use defaults
-    asosiy_values = [float(r["asosiy_stavka"]) for r in data]
+    asosiy_values = [float(r["rate"]) for r in data]
 
 
     # ── Open background ───────────────────────────────────────────────────────
@@ -138,18 +143,17 @@ def draw_graph_data(filtered_image_data: List[Dict], background_path: str, outpu
         tick = round(tick + Y_STEP, 1)
 
     # ── X-axis month labels ───────────────────────────────────────────────────
-    prev_month = None
+    month_numbers = []
     month_ticks: List[tuple] = []   # (index, date)
     for i, d in enumerate(dates):
-        if d.month != prev_month and d.year != datetime.now().year:
+        if d.month not in month_numbers and d.year != datetime.now().year:
             month_ticks.append((i, d))
-            prev_month = d.month
+            month_numbers.append(d.month)
 
     # Also add the last date as a special tick
     last_label_x = _index_to_x(n - 1, n)
     last_label_text = dates[-1].strftime("%d.%m.%Y")
 
-    print(month_ticks)
     for idx, d in month_ticks:
         x = _index_to_x(idx, n)
         label = _month_label(d)

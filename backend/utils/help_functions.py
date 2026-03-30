@@ -2,7 +2,9 @@ from datetime import datetime, timedelta, date
 from typing import  Dict
 from .database import get_single_uzonia_data
 import shutil
+import io
 import os
+import zipfile
 
 
 async def adjust_for_weekends_func(target_date: date) -> date:
@@ -34,7 +36,6 @@ async def time_period_uzonia_func(cb_date: date, db_time_data: dict) -> Dict:
         valid_date = await find_last_available_date_func(target_date, db_time_data)
         value = db_time_data[valid_date]
         time_period_uzonia_calculations_dict[f'n_period_{n_period}'] = value
-        print(f"{n_period}-day period: {valid_date} → value = {value}")
 
     previous_year = cb_date.year - 1
     ytd_date = date(year=previous_year, month=12, day=31)
@@ -55,30 +56,29 @@ async def finding_time_uzonia_calculations_func(cb_date: date, db_time_data: dic
     if not time_period_uzonia_calculations_dict:
         return {}
 
-    previous_date_data = await get_single_uzonia_data(uzonia_date=time_period_uzonia_func['last_work_date'])
+    previous_date_data = await get_single_uzonia_data(uzonia_date=time_period_uzonia_calculations_dict['last_work_date'])
     if previous_date_data is None:
         return {}
 
-    current_uzonia = current_uzonia_calculations_dict['day_uzonia']
+    current_uzonia = current_uzonia_calculations_dict['uzonia']
 
-    day_1_diff = previous_date_data['uzonia'] - current_uzonia
-    day_7_diff = previous_date_data['day_7_uzonia'] - current_uzonia_calculations_dict['day_7_uzonia']
-    day_30_diff = previous_date_data['day_30_uzonia'] - current_uzonia_calculations_dict['day_30_uzonia']
-    day_90_diff = previous_date_data['day_90_uzonia'] - current_uzonia_calculations_dict['day_90_uzonia']
-    day_180_diff = previous_date_data['day_180_uzonia'] - current_uzonia_calculations_dict['day_180_uzonia']
-    index_diff = previous_date_data['index'] - current_uzonia_calculations_dict['index']
+    day_1_diff = current_uzonia - previous_date_data['uzonia']
+    day_7_diff = current_uzonia_calculations_dict['day_7_uzonia'] - previous_date_data['day_7_uzonia']
+    day_30_diff = current_uzonia_calculations_dict['day_30_uzonia'] - previous_date_data['day_30_uzonia']
+    day_90_diff = current_uzonia_calculations_dict['day_90_uzonia'] - previous_date_data['day_90_uzonia']
+    day_180_diff = current_uzonia_calculations_dict['day_180_uzonia'] -  previous_date_data['day_180_uzonia']
+    index_diff = current_uzonia_calculations_dict['index'] - previous_date_data['index']
 
-    period_7_diff = time_period_uzonia_calculations_dict['n_period_7'] - current_uzonia
-    period_30_diff = time_period_uzonia_calculations_dict['n_period_30'] - current_uzonia
-    period_90_diff = time_period_uzonia_calculations_dict['n_period_90'] - current_uzonia
-    period_180_diff = time_period_uzonia_calculations_dict['n_period_180'] - current_uzonia
-    period_365_diff = current_uzonia_calculations_dict['n_period_365'] - current_uzonia
-    period_ytd_diff = current_uzonia_calculations_dict['ytd'] - current_uzonia
+    period_7_diff = current_uzonia - time_period_uzonia_calculations_dict['n_period_7']
+    period_30_diff = current_uzonia - time_period_uzonia_calculations_dict['n_period_30']
+    period_90_diff = current_uzonia - time_period_uzonia_calculations_dict['n_period_90']
+    period_180_diff = current_uzonia -  time_period_uzonia_calculations_dict['n_period_180']
+    period_365_diff = current_uzonia - time_period_uzonia_calculations_dict['n_period_365']
+    period_ytd_diff = current_uzonia - time_period_uzonia_calculations_dict['ytd']
 
     final_uzonia_table_data_dict = {
-        'uzonia_calculation_way': current_uzonia_calculations_dict['uzonia_calculation_way'],
         'uzonia_date': current_uzonia_calculations_dict['uzonia_date'],
-        'day_uzonia': current_uzonia_calculations_dict['day_uzonia'],
+        'day_uzonia': current_uzonia_calculations_dict['uzonia'],
         'day_7_uzonia': current_uzonia_calculations_dict['day_7_uzonia'],
         'day_30_uzonia': current_uzonia_calculations_dict['day_30_uzonia'],
         'day_90_uzonia': current_uzonia_calculations_dict['day_90_uzonia'],
@@ -86,7 +86,7 @@ async def finding_time_uzonia_calculations_func(cb_date: date, db_time_data: dic
         'index': current_uzonia_calculations_dict['index'],
 
         'prev_uzonia_date': previous_date_data['uzonia_date'],
-        'prev_day_uzonia': previous_date_data['day_uzonia'],
+        'prev_day_uzonia': previous_date_data['uzonia'],
         'prev_day_7_uzonia': previous_date_data['day_7_uzonia'],
         'prev_day_30_uzonia': previous_date_data['day_30_uzonia'],
         'prev_day_90_uzonia': previous_date_data['day_90_uzonia'],
@@ -111,20 +111,16 @@ async def finding_time_uzonia_calculations_func(cb_date: date, db_time_data: dic
     return final_uzonia_table_data_dict
 
 
-def zip_and_delete_folder(folder_path: str, zip_name: str = None) -> str:
-    """Zip a folder and delete the original."""
+def stream_zip_from_folder(folder_path: str):
+    zip_buffer = io.BytesIO()
 
-    if not os.path.exists(folder_path):
-        raise ValueError("Folder does not exist")
+    with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_STORED) as zipf:
+        for root, _, files in os.walk(folder_path):
+            for file in files:
+                full_path = os.path.join(root, file)
+                arcname = os.path.relpath(full_path, folder_path)
+                zipf.write(full_path, arcname)
 
-    # If zip name not provided → use folder name
-    if not zip_name:
-        zip_name = folder_path.rstrip("/\\").split("/")[-1]
-
-    # Create zip (no .zip extension here)
-    zip_path = shutil.make_archive(zip_name, 'zip', folder_path)
-
-    # Delete original folder
-    shutil.rmtree(folder_path)
-
-    return zip_path
+    # ⭐ THIS IS THE MISSING STEP ⭐
+    zip_buffer.seek(0)
+    return zip_buffer
