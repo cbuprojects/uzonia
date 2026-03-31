@@ -68,8 +68,8 @@ async def init_db_pool() -> None:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS repo_data (
                 id                       SERIAL PRIMARY KEY,
-                file_id                  TEXT NOT NULL UNIQUE,
-                number_of_applications   TEXT NOT NULL UNIQUE,
+                file_id                  TEXT NOT NULL,
+                number_of_application   TEXT NOT NULL UNIQUE,
                 date_in                  DATE NOT NULL,
                 date_out                 DATE NOT NULL,
                 dealer_from              TEXT NOT NULL,
@@ -627,15 +627,14 @@ async def get_all_repo_data():
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT file_id, number_of_applications, date_in, date_out,
-                 dealer_from, dealer_to, rate, days, money_in, money_out, created_at
+                SELECT file_id, number_of_application, date_in, date_out, dealer_from, dealer_to, rate, days, money_in, money_out, created_at
                 FROM repo_data
-                ORDER BY file_date DESC
+                ORDER BY created_at DESC
                 """
             )
             if rows:
                 return [{'file_id': row['file_id'],
-                         'number_of_applications': row['number_of_applications'],
+                         'number_of_application': row['number_of_application'],
                          'date_in': row['date_in'],
                          'date_out': row['date_out'],
                          'dealer_from': row['dealer_from'],
@@ -652,18 +651,18 @@ async def get_all_repo_data():
         return None
 
 
-async def add_new_repo_data(file_id: str,  number_of_applications: str, date_in: date, date_out: date,
+async def add_new_repo_data(file_id: str,  number_of_application: str, date_in: date, date_out: date,
                             dealer_from: str, dealer_to: str, rate: float, days: int, money_in: float, money_out: float, created_at: datetime) -> bool:
     """Add new repo data."""
     try:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO repo_data (file_id, number_of_applications, date_in, date_out,
+                INSERT INTO repo_data (file_id, number_of_application, date_in, date_out,
                  dealer_from, dealer_to, rate, days, money_in, money_out, created_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 """,
-                file_id, number_of_applications, date_in, date_out, dealer_from, dealer_to, rate, days, money_in, money_out, created_at
+                file_id, number_of_application, date_in, date_out, dealer_from, dealer_to, rate, days, money_in, money_out, created_at
             )
         return True
     except asyncpg.UniqueViolationError:
@@ -715,15 +714,14 @@ async def get_all_depo_data():
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT file_id, number_of_applications, date_in, date_out,
-                 dealer_from, dealer_to, rate, days, money, created_at
+                SELECT file_id, number_of_application, date_in, date_out, dealer_from, dealer_to, rate, days, money, created_at
                 FROM repo_data
                 ORDER BY file_date DESC
                 """
             )
             if rows:
                 return [{'file_id': row['file_id'],
-                         'number_of_applications': row['number_of_applications'],
+                         'number_of_application': row['number_of_application'],
                          'date_in': row['date_in'],
                          'date_out': row['date_out'],
                          'dealer_from': row['dealer_from'],
@@ -739,18 +737,18 @@ async def get_all_depo_data():
         return None
 
 
-async def add_new_depo_data(file_id: str,  number_of_applications: str, date_in: date, date_out: date,
+async def add_new_depo_data(file_id: str,  number_of_application: str, date_in: date, date_out: date,
                             dealer_from: str, dealer_to: str, rate: float, days: int, money: float, created_at: datetime) -> bool:
     """Add new repo data."""
     try:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO depo_data (file_id, number_of_applications, date_in, date_out,
+                INSERT INTO depo_data (file_id, number_of_application, date_in, date_out,
                  dealer_from, dealer_to, rate, days, money, created_at)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 """,
-                file_id, number_of_applications, date_in, date_out, dealer_from, dealer_to, rate, days, money, created_at
+                file_id, number_of_application, date_in, date_out, dealer_from, dealer_to, rate, days, money, created_at
             )
         return True
     except asyncpg.UniqueViolationError:

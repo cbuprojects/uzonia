@@ -716,7 +716,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         total_value = total_value + row_data[2]
 
 
-    for idx, row in repo_n_unique:
+    for idx, row in repo_n_unique.iterrows():
         dealer_from = next(
             (
                 r['Инвестор']
@@ -737,7 +737,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
 
         days = row['Срок РЕПО (днях)'].replace(' день', '', regex=False).astype(int)
         await add_new_repo_data(file_id=file_id,
-                                number_of_applications=row['Номер заявки'],
+                                number_of_application=row['Номер заявки'],
                                 date_in=row['Время подачи'],
                                 date_out=row['Время исполнения второй части'],
                                 dealer_from=dealer_from,
@@ -748,11 +748,11 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
                                 money_out=row['Сумма РЕПО (в сумах)'],
                                 created_at=datetime.now(tz))
 
-    for idx, row in repo_m_unique:
+    for idx, row in repo_m_unique.iterrows():
         dealer_from = next(
             (
                 r['Дилер/Инвестор']
-                for r in repo_n_file_data
+                for r in repo_m_file_data
                 if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Продажа'
             ),
             None
@@ -761,7 +761,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         dealer_to = next(
             (
                 r['Дилер/Инвестор']
-                for r in repo_n_file_data
+                for r in repo_m_file_data
                 if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Покупка'
             ),
             None
@@ -769,7 +769,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
 
         days = row['Срок РЕПО (днях)'].replace(' день', '', regex=False).astype(int)
         await add_new_repo_data(file_id=file_id,
-                                number_of_applications=row['Номер заявки'],
+                                number_of_application=row['Номер заявки'],
                                 date_in=row['Время подачи'],
                                 date_out=row['Время исполнения второй части'],
                                 dealer_from=dealer_from,
@@ -780,9 +780,9 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
                                 money_out=row['Сумма РЕПО (в сумах)'],
                                 created_at=datetime.now(tz))
 
-    for idx, row in depo_unique:
+    for idx, row in depo_unique.iterrows():
         await add_new_depo_data(file_id=file_id,
-                                number_of_applications=row['Код сделки'],
+                                number_of_application=row['Код сделки'],
                                 date_in=row['ОперДата'],
                                 date_out=row['Дата возврата'],
                                 dealer_from=row['Банк(Размещение)'],

@@ -2,6 +2,7 @@ from datetime import datetime
 
 
 bank_names = [
+    "bank",
     "Banks",
     "O'zR Markaziy banki",
     "O’zR TIF Milliy bank AJ",
