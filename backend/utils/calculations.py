@@ -1,5 +1,4 @@
 from typing import List
-from .database import get_last_five_uzonia
 
 
 def calculate_10_percent(n: int, ten_percent_value: float, repos_data_list: list) -> List:

@@ -75,16 +75,68 @@ def _month_label(d: date) -> str:
     return month_name
 
 
-def _draw_dashed_line_sequence(draw, points, color):
+def _draw_dashed_polyline(draw, points: List[tuple], fill, width=3, dash=8, gap=6):
+    """
+    Draw a dashed line that follows a polyline of (x, y) points.
+
+    Works correctly even with many closely-spaced points (e.g. one per day):
+    it walks a continuous 'distance budget' across all segments so dashes
+    and gaps never reset between data points — the pattern flows smoothly
+    from start to finish regardless of point density.
+
+    Parameters
+    ----------
+    draw   : ImageDraw.Draw instance
+    points : list of (x, y) tuples — the polyline vertices
+    fill   : dash colour
+    width  : line width in pixels
+    dash   : length of each dash in pixels
+    gap    : length of each gap in pixels
+    """
+    if len(points) < 2:
+        return
+
+    period = dash + gap  # one full on+off cycle in pixels
+    budget = 0.0  # how far into the current cycle we are (resets each cycle)
+    drawing = True  # True = currently in a dash, False = in a gap
+
     for i in range(len(points) - 1):
-        _draw_dashed_line(
-            draw,
-            points[i][0], points[i][1],
-            points[i+1][0], points[i+1][1],
-            fill=color,
-            width=4,
-            dash=12
-        )
+        x1, y1 = points[i]
+        x2, y2 = points[i + 1]
+
+        dx, dy = x2 - x1, y2 - y1
+        seg_len = math.hypot(dx, dy)
+        if seg_len == 0:
+            continue
+
+        ux, uy = dx / seg_len, dy / seg_len  # unit vector along segment
+        consumed = 0.0  # pixels consumed on this segment
+
+        while consumed < seg_len:
+            # How much of the current dash/gap phase remains?
+            if drawing:
+                remaining_phase = dash - budget
+            else:
+                remaining_phase = gap - budget
+
+            # How far can we go on this segment before it ends?
+            available = seg_len - consumed
+            step = min(remaining_phase, available)
+
+            if drawing:
+                sx = x1 + ux * consumed
+                sy = y1 + uy * consumed
+                ex = sx + ux * step
+                ey = sy + uy * step
+                draw.line([(sx, sy), (ex, ey)], fill=fill, width=width)
+
+            consumed += step
+            budget += step
+
+            # Did we complete a full phase?
+            if budget >= (dash if drawing else gap) - 1e-9:
+                budget = 0.0
+                drawing = not drawing
 
 
 def draw_graph_data(filtered_image_data: List[Dict], background_path: str, output_path: str) -> str:
@@ -185,8 +237,8 @@ def draw_graph_data(filtered_image_data: List[Dict], background_path: str, outpu
     draw.line(asosiy_points, fill=COLOR_ASOSIY, width=4)
 
     # Corridor (green dashed)
-    _draw_dashed_line_sequence(draw, upper_points, COLOR_UPPER_BOUND)
-    _draw_dashed_line_sequence(draw, lower_points, COLOR_LOWER_BOUND)
+    _draw_dashed_polyline(draw, upper_points, fill=COLOR_UPPER_BOUND, width=3, dash=8, gap=6)
+    _draw_dashed_polyline(draw, lower_points, fill=COLOR_LOWER_BOUND, width=3, dash=8, gap=6)
 
     # ── UZONIA rate line ──────────────────────────────────────────────────────
     points = [
@@ -208,13 +260,23 @@ def draw_graph_data(filtered_image_data: List[Dict], background_path: str, outpu
     legend_y  = GRAPH_BOTTOM + 120
     legend_items = [
         (COLOR_ASOSIY,      "Asosiy stavka",      "solid"),
-        (COLOR_UPPER_BOUND, "Quyi/Yuqori chegara", "solid"),
+        (COLOR_UPPER_BOUND, "Quyi/Yuqori chegara", "dashed"),
         (COLOR_UZONIA,      "UZONIA",              "solid"),
     ]
     lx = GRAPH_LEFT + 220
     for color, text, style in legend_items:
-        # line
-        draw.line([(lx, legend_y + 7), (lx + 35, legend_y + 7)],
+        if style == "dashed":
+            _draw_dashed_line(
+                draw,
+                lx, legend_y + 7,
+                    lx + 35, legend_y + 7,
+                fill=color,
+                width=4,
+                dash=6
+            )
+        else:
+            # line
+            draw.line([(lx, legend_y + 7), (lx + 35, legend_y + 7)],
                   fill=color, width=4)
         # text
         text_x = lx + 42
@@ -234,25 +296,21 @@ def draw_graph_data(filtered_image_data: List[Dict], background_path: str, outpu
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _draw_dashed_line(draw, x1, y1, x2, y2, fill, width=4, dash=10):
-    """Draw a horizontal or angled dashed line."""
-    dx, dy    = x2 - x1, y2 - y1
-    length    = math.hypot(dx, dy)
+def _draw_dashed_line(draw, x1, y1, x2, y2, fill, width=4, dash=6, gap=8):
+    dx, dy = x2 - x1, y2 - y1
+    length = math.hypot(dx, dy)
     if length == 0:
         return
-    ux, uy    = dx / length, dy / length
-    pos       = 0.0
-    drawing   = True
+    ux, uy = dx / length, dy / length
+    pos = 0.0
     while pos < length:
         seg_end = min(pos + dash, length)
-        if drawing:
-            draw.line(
-                [(x1 + ux * pos, y1 + uy * pos),
-                 (x1 + ux * seg_end, y1 + uy * seg_end)],
-                fill=fill, width=width,
-            )
-        pos    += dash
-        drawing = not drawing
+        draw.line(
+            [(x1 + ux * pos, y1 + uy * pos),
+             (x1 + ux * seg_end, y1 + uy * seg_end)],
+            fill=fill, width=width
+        )
+        pos += dash + gap
 
 
 def _draw_rotated_label(img, text, x, y, font, fill, angle=45):

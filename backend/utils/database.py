@@ -427,7 +427,7 @@ async def get_date_filtered_rate_uzonia(from_date: date, till_date: date) -> Lis
         return None
 
 
-async def get_time_period_uzonia_data(cb_date: date) -> Dict:
+async def get_time_period_uzonia_data(cb_date: date) -> List:
     """Get time period uzonia data."""
     try:
         async with pool.acquire() as conn:
@@ -436,16 +436,14 @@ async def get_time_period_uzonia_data(cb_date: date) -> Dict:
                 SELECT uzonia_date, uzonia
                 FROM uzonia_data
                 WHERE uzonia_date <= $1
-                ORDER BY uzonia_date ASC
+                ORDER BY uzonia_date DESC
                 """, cb_date
             )
             if rows:
-                time_period_uzonia_data = {}
-                for row in rows:
-                    time_period_uzonia_data[row['uzonia_date']] = float(row['uzonia'])
+                time_period_uzonia_data = [[row['uzonia_date'], float(row['uzonia'])] for row in rows]
                 return time_period_uzonia_data
             else:
-                return {}
+                return []
     except Exception as e:
         print(f'Could not get all uzonia data from database: {e}')
         return None
@@ -496,6 +494,29 @@ async def get_latest_uzonia_data(cb_date: date) -> Dict:
         return None
 
 
+
+async def get_year_first_uzonia_data(year_first_date: date):
+    """Get nth uzonia data."""
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
+                FROM uzonia_data
+                WHERE uzonia_date >= $1
+                ORDER BY uzonia_date ASC
+                LIMIT 1
+                """, year_first_date)
+        if row:
+            return {'file_id': row['file_id'], 'rate': row['rate'], 'uzonia': float(row['uzonia']),
+                    'day_7_uzonia': float(row['day_7_uzonia']), 'day_30_uzonia': float(row['day_30_uzonia']),
+                    'day_90_uzonia': float(row['day_90_uzonia']), 'day_180_uzonia': float(row['day_180_uzonia']),
+                    'index': float(row['index']), 'uzonia_date': row['uzonia_date'], 'days': row['days']}
+        else:
+            return None
+    except Exception as e:
+        print(f'Could not get uzonia data from database: {e}')
+        return None
 
 # ----------------------------------------------------------------------------------------------------------------------
 # uzonia_uploads

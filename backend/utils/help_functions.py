@@ -1,64 +1,40 @@
 from datetime import datetime, timedelta, date
 from typing import  Dict
-from .database import get_single_uzonia_data
+from .database import get_single_uzonia_data, get_year_first_uzonia_data, get_latest_uzonia_data
 import shutil
 import io
 import os
 import zipfile
 
 
-async def adjust_for_weekends_func(target_date: date) -> date:
-    """Move backward if the date falls on Saturday or Sunday."""
-    while target_date.weekday() >= 5:  # 5=Saturday, 6=Sunday
-        target_date -= timedelta(days=1)
-    return target_date
-
-
-async def find_last_available_date_func(target_date: date, db_time_date: dict) -> date:
-    """
-    Adjust for weekends and missing data:
-    Keep moving backward until a date exists in db.
-    """
-    new_date = await adjust_for_weekends_func(target_date)
-    while new_date not in db_time_date.keys():
-        new_date -= timedelta(days=1)
-        new_date = await adjust_for_weekends_func(new_date)
-    return new_date
-
-
-async def time_period_uzonia_func(cb_date: date, db_time_data: dict) -> Dict:
+async def time_period_uzonia_func(cb_date: date, db_time_data: list) -> Dict:
 
     time_period_uzonia_calculations_dict = {}
-    uzonia_time_calculations = [7, 30, 90, 180, 365]
+    uzonia_time_calculations = {7:6, 30:20, 90:64, 180:126, 365:250}
     # Loop over periods
-    for n_period in uzonia_time_calculations:
-        target_date = cb_date - timedelta(days=n_period)
-        valid_date = await find_last_available_date_func(target_date, db_time_data)
-        value = db_time_data[valid_date]
-        time_period_uzonia_calculations_dict[f'n_period_{n_period}'] = value
+    for n_period_key, n_period_value in uzonia_time_calculations.items():
+        value = db_time_data[n_period_value-1][1]
+        time_period_uzonia_calculations_dict[f'n_period_{n_period_key}'] = value
 
-    previous_year = cb_date.year - 1
-    ytd_date = date(year=previous_year, month=12, day=31)
-    ytd_date = await find_last_available_date_func(ytd_date, db_time_data)
-    ytd_value = db_time_data[ytd_date]
+
+    ytd_date = date(year=cb_date.year, month=1, day=1)
+    ytd_data = await get_year_first_uzonia_data(year_first_date=ytd_date)
+    ytd_value = ytd_data['uzonia']
     time_period_uzonia_calculations_dict[f'ytd'] = ytd_value
 
-    last_work_day = cb_date - timedelta(days=1)
-    last_work_date = await find_last_available_date_func(last_work_day, db_time_data)
-    time_period_uzonia_calculations_dict[f'last_work_date'] = last_work_date
+    last_work_data = await get_latest_uzonia_data(cb_date=cb_date)
+    time_period_uzonia_calculations_dict[f'last_work_date'] = last_work_data['uzonia_date']
 
     return time_period_uzonia_calculations_dict
 
 
-async def finding_time_uzonia_calculations_func(cb_date: date, db_time_data: dict,
+async def finding_time_uzonia_calculations_func(cb_date: date, db_time_data: list,
                                                current_uzonia_calculations_dict: dict) -> Dict:
     time_period_uzonia_calculations_dict = await time_period_uzonia_func(cb_date, db_time_data)
     if not time_period_uzonia_calculations_dict:
         return {}
 
     previous_date_data = await get_single_uzonia_data(uzonia_date=time_period_uzonia_calculations_dict['last_work_date'])
-    if previous_date_data is None:
-        return {}
 
     current_uzonia = current_uzonia_calculations_dict['uzonia']
 
