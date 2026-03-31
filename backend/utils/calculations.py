@@ -39,7 +39,6 @@ def calculate_total_multiplication_sum(repos_data_list: list) -> float:
 
 
 def calculate_uzonia_value(total_sum: float, total_multiplication_sum: float) -> float:
-
     uzonia_value = total_multiplication_sum / total_sum
     uzonia_value = round(uzonia_value, 4)
     uzonia_value = float(f'{uzonia_value:.4f}')

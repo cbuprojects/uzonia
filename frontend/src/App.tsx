@@ -5,7 +5,7 @@ import UzoniaDataPage from './components/uzonia_data';
 import UzoniaUploadsPage from './components/uploads';
 import CalculationsPage from './components/calculations';
 import RepoDataPage from './components/repos';
-
+import DepoDataPage from './components/depos';
 
 // import other pages when ready
 
@@ -18,6 +18,7 @@ const App = () => {
         <Route path="/data" element={<UzoniaDataPage />} />
         <Route path="/uploads" element={<UzoniaUploadsPage />} />
         <Route path="/repo" element={<RepoDataPage />} />
+        <Route path="/depo" element={<DepoDataPage />} />
         {/* Add other pages as needed */}
       </Routes>
     </Router>

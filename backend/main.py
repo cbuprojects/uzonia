@@ -19,12 +19,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from utils.bank_data import bank_names
 from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data, get_all_holiday_data,
                             add_holiday_data, edit_holiday_data, delete_holiday_data,
-                            get_n_uzonia_data, get_single_uzonia_data, add_new_uzonia_data,
+                            get_latest_n_uzonia, get_single_uzonia_data, add_new_uzonia_data,
                             delete_uzonia_data, get_all_uzonia_data, edit_uzonia_data,
                             get_single_uzonia_upload, get_all_uzonia_uploads, delete_uzonia_upload, edit_uzonia_upload_status,
                             get_date_filtered_rate_uzonia, get_time_period_uzonia_data,
                             add_new_uzonia_upload, get_latest_uzonia_data, get_last_five_uzonia, get_filtered_uzonia_data,
-                            add_new_repo_data, add_new_depo_data, get_all_repo_data, repo_data_exists, delete_repo_data)
+                            add_new_repo_data, add_new_depo_data, get_all_repo_data, repo_data_exists, delete_repo_data,
+                            get_all_depo_data, depo_data_exists, delete_depo_data)
 from utils.add_data import add_new_uzonia_data_to_the_db, add_new_holiday_data_to_the_db
 from utils.calculations import calculate_day_uzonia, calculate_cb_rate
 from utils.draw_graph import draw_graph_data
@@ -719,23 +720,23 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     for idx, row in repo_n_unique.iterrows():
         dealer_from = next(
             (
-                r['Инвестор']
-                for r in repo_n_file_data
-                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Продажа'
+                row_n['Инвестор']
+                for index, row_n in repo_n_file_data.iterrows()
+                if row_n['Номер заявки'] == row['Номер заявки'] and row_n['Направление'] == 'Продажа'
             ),
             None
         )
 
         dealer_to = next(
             (
-                r['Инвестор']
-                for r in repo_n_file_data
-                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Покупка'
+                row_n['Инвестор']
+                for index, row_n in repo_n_file_data.iterrows()
+                if row_n['Номер заявки'] == row['Номер заявки'] and row_n['Направление'] == 'Покупка'
             ),
             None
         )
 
-        days = row['Срок РЕПО (днях)'].replace(' день', '', regex=False).astype(int)
+        days = int(row['Срок РЕПО (днях)'].replace(' день', ''))
         await add_new_repo_data(file_id=file_id,
                                 number_of_application=row['Номер заявки'],
                                 date_in=row['Время подачи'],
@@ -751,23 +752,23 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     for idx, row in repo_m_unique.iterrows():
         dealer_from = next(
             (
-                r['Дилер/Инвестор']
-                for r in repo_m_file_data
-                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Продажа'
+                row_m['Дилер/Инвестор']
+                for index, row_m in repo_m_file_data.iterrows()
+                if row_m['Номер заявки'] == row['Номер заявки'] and row_m['Направление'] == 'Продажа'
             ),
             None
         )
 
         dealer_to = next(
             (
-                r['Дилер/Инвестор']
-                for r in repo_m_file_data
-                if r['Номер заявки'] == row['Номер заявки'] and r['Направление'] == 'Покупка'
+                row_m['Дилер/Инвестор']
+                for index, row_m in repo_m_file_data.iterrows()
+                if row_m['Номер заявки'] == row['Номер заявки'] and row_m['Направление'] == 'Покупка'
             ),
             None
         )
 
-        days = row['Срок РЕПО (днях)'].replace(' день', '', regex=False).astype(int)
+        days = int(row['Срок РЕПО (днях)'].replace(' день', ''))
         await add_new_repo_data(file_id=file_id,
                                 number_of_application=row['Номер заявки'],
                                 date_in=row['Время подачи'],
@@ -858,14 +859,19 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
     n_day_number = (cb_date - latest_date).days
     print('n_day_number:', n_day_number)
 
-    days_n_periods = [7, 30, 90, 180]
-    for period in days_n_periods:
+    uzonia_index = latest_index * (1 + ((day_uzonia / 100 ) * (n_day_number / 365)))
+    print('uzonia_index:', uzonia_index)
+    final_uzonia_data_dict['index'] = uzonia_index
+    final_uzonia_data_dict['uzonia_date'] = cb_date
+
+    days_n_periods = {7:6, 30:20, 90:64, 180:126}
+    for period_key, latest_n_value in days_n_periods.items():
         # 1. Start with the 'un-synced' days (the gap between last data and now)
         # Assuming 'current_rate' is the rate for the gap period
         total_growth = (1 + ((day_uzonia / 100) * (n_day_number / 365)))
-        till_date = cb_date - timedelta(days=period)
-        history = await get_n_uzonia_data(cb_date=cb_date, till_date=till_date)
-
+        till_date = cb_date - timedelta(days=period_key)
+        history = await get_latest_n_uzonia(latest_n=latest_n_value)
+        print('History:', history)
         total_days_in_period = n_day_number
 
         for rate_value, active_days in history:
@@ -876,12 +882,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         # 3. Final Annualization using the actual total days elapsed
         n_day_final_value = ((total_growth - 1) * (365 / total_days_in_period)) * 100
         print('n_day_final_uzonia_value:', n_day_final_value)
-        final_uzonia_data_dict[f'day_{period}_uzonia'] = n_day_final_value
-
-
-    uzonia_index = latest_index * (1 + ((day_uzonia * n_day_number) / (365 * 100)))
-    final_uzonia_data_dict['index'] = uzonia_index
-    final_uzonia_data_dict['uzonia_date'] = cb_date
+        final_uzonia_data_dict[f'day_{period_key}_uzonia'] = n_day_final_value
 
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -919,6 +920,9 @@ async def get_all_repo_data_api():
     logger.info("get_all_repo_data | Fetching all repo data")
     all_repo_data = await get_all_repo_data()
 
+    if len(all_repo_data) == 0:
+        return {"Status": 'Success', 'Data': all_repo_data}
+
     if not all_repo_data:
         logger.warning("get_all_repo_data | No repo data found in DB")
         raise HTTPException(status_code=404, detail="Such data does not exist!")
@@ -945,5 +949,46 @@ async def delete_repo_data_api(file_id: str):
         raise HTTPException(status_code=404, detail="Could not delete the repo data!")
 
     logger.info("delete_repo_data | Deleted file_id=%s", file_id)
+    return {"Status": 'Success', 'Data': 'Deleted successfully!'}
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# depo_data
+# ----------------------------------------------------------------------------------------------------------------------
+@app.get("/api/get_all_depo_data", tags=["Get All Depo Data"])
+async def get_all_depo_data_api():
+    logger.info("get_all_depo_data | Fetching all depo data")
+    all_depo_data = await get_all_depo_data()
+
+    if len(all_depo_data) == 0:
+        return {"Status": 'Success', 'Data': all_depo_data}
+
+    if not all_depo_data:
+        logger.warning("get_all_depo_data | No depo data found in DB")
+        raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+    logger.info("get_all_depo_data | Returned %d records", len(all_depo_data))
+    return {"Status": 'Success', 'Data': all_depo_data}
+
+
+@app.delete("/api/delete_depo_data", tags=["Delete Depo Data"])
+async def delete_repo_data_api(file_id: str):
+    logger.info("delete_depo_data | file_id=%s", file_id)
+    if not file_id:
+        logger.warning("delete_depo_data | Missing file_id parameter")
+        raise HTTPException(status_code=400, detail="file_id parameter is required")
+
+    single_depo_data = await depo_data_exists(file_id=file_id)
+    if not single_depo_data:
+        logger.warning("delete_depo_data | Not found: file_id=%s", file_id)
+        raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+    deleted_row = await delete_depo_data(file_id=file_id)
+    if not deleted_row:
+        logger.error("delete_depo_data | DB delete failed for file_id=%s", file_id)
+        raise HTTPException(status_code=404, detail="Could not delete the depo data!")
+
+    logger.info("delete_depo_data | Deleted file_id=%s", file_id)
     return {"Status": 'Success', 'Data': 'Deleted successfully!'}
 

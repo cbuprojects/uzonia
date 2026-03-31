@@ -32,18 +32,16 @@ const NAV_PAGES = [
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface RepoRow {
-  id:                     number;
+interface DepoRow {
   file_id:                string;
-  number_of_application: string;
+  number_of_application:  string;
   date_in:                string;
   date_out:               string;
   dealer_from:            string;
   dealer_to:              string;
-  days:                   number;
   rate:                   number;
-  money_in:               number;
-  money_out:              number;
+  days:                   number;
+  money:                  number;
   created_at:             string | null;
 }
 
@@ -64,9 +62,9 @@ const formatDateTime = (s: string | null): string => {
   return `${String(d.getDate()).padStart(2,'0')}-${months[d.getMonth()]}-${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 };
 
-const fmtRate   = (n: number): string => typeof n === 'number' ? `${n.toFixed(2)}%` : '—';
-const fmtMoney  = (n: number): string => typeof n === 'number' ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
-const fmtDays   = (n: number): string => typeof n === 'number' ? n.toFixed(2) : '—';
+const fmtRate  = (n: number): string => typeof n === 'number' ? `${n.toFixed(2)}%` : '—';
+const fmtMoney = (n: number): string => typeof n === 'number' ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+const fmtDays  = (n: number): string => typeof n === 'number' ? n.toFixed(2) : '—';
 
 // ─── SmartDateInput ───────────────────────────────────────────────────────────
 
@@ -125,32 +123,31 @@ const ColSearch = ({ value, onChange, placeholder, icon, flex }: {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const RepoDataPage = () => {
+const DepoDataPage = () => {
   const navigate    = useNavigate();
-  const currentPath = '/repo';
+  const currentPath = '/depo';
 
   const { data, error, isLoading, mutate } = useSWR(
-    `${API_BASE_URL}/api/get_all_repo_data`, fetcher, { revalidateOnFocus: false }
+    `${API_BASE_URL}/api/get_all_depo_data`, fetcher, { revalidateOnFocus: false }
   );
 
   // ── Per-column filter state ───────────────────────────────────────────────
-  const [fFileId,   setFFileId]   = useState('');
-  const [fAppNo,    setFAppNo]    = useState('');
-  const [fDateIn,   setFDateIn]   = useState('');
-  const [fDateOut,  setFDateOut]  = useState('');
-  const [fDealer,   setFDealer]   = useState(''); // searches both dealer_from and dealer_to
-  const [fDays,     setFDays]     = useState('');
-  const [fRate,     setFRate]     = useState('');
-  const [fMoneyIn,  setFMoneyIn]  = useState('');
-  const [fMoneyOut, setFMoneyOut] = useState('');
-  const [fCreated,  setFCreated]  = useState('');
+  const [fFileId,  setFFileId]  = useState('');
+  const [fAppNo,   setFAppNo]   = useState('');
+  const [fDateIn,  setFDateIn]  = useState('');
+  const [fDateOut, setFDateOut] = useState('');
+  const [fDealer,  setFDealer]  = useState(''); // searches both dealer_from and dealer_to
+  const [fDays,    setFDays]    = useState('');
+  const [fRate,    setFRate]    = useState('');
+  const [fMoney,   setFMoney]   = useState('');
+  const [fCreated, setFCreated] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
   // ── Delete modal ─────────────────────────────────────────────────────────
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [targetRow,  setTargetRow]  = useState<RepoRow | null>(null);
+  const [targetRow,  setTargetRow]  = useState<DepoRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [toast, setToast] = useState<{ text: string; type: 'success'|'error' }|null>(null);
@@ -171,65 +168,62 @@ const RepoDataPage = () => {
   }, []);
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const rows: RepoRow[] = useMemo(() => Array.isArray(data?.Data) ? data.Data : [], [data]);
+  const rows: DepoRow[] = useMemo(() => Array.isArray(data?.Data) ? data.Data : [], [data]);
 
   const filteredData = useMemo(() => {
     let f = [...rows];
-    if (fFileId.trim())   f = f.filter(r => r.file_id.toLowerCase().includes(fFileId.trim().toLowerCase()));
-    if (fAppNo.trim())    f = f.filter(r => r.number_of_application.toLowerCase().includes(fAppNo.trim().toLowerCase()));
-    if (fDateIn.trim())   f = f.filter(r => formatDate(r.date_in).includes(fDateIn.trim()));
-    if (fDateOut.trim())  f = f.filter(r => formatDate(r.date_out).includes(fDateOut.trim()));
-    if (fDealer.trim())   f = f.filter(r =>
+    if (fFileId.trim())  f = f.filter(r => r.file_id.toLowerCase().includes(fFileId.trim().toLowerCase()));
+    if (fAppNo.trim())   f = f.filter(r => r.number_of_application.toLowerCase().includes(fAppNo.trim().toLowerCase()));
+    if (fDateIn.trim())  f = f.filter(r => formatDate(r.date_in).includes(fDateIn.trim()));
+    if (fDateOut.trim()) f = f.filter(r => formatDate(r.date_out).includes(fDateOut.trim()));
+    if (fDealer.trim())  f = f.filter(r =>
       r.dealer_from.toLowerCase().includes(fDealer.trim().toLowerCase()) ||
       r.dealer_to.toLowerCase().includes(fDealer.trim().toLowerCase())
     );
-    if (fDays.trim())     f = f.filter(r => fmtDays(r.days).includes(fDays.trim()));
-    if (fRate.trim())     f = f.filter(r => fmtRate(r.rate).includes(fRate.trim()));
-    if (fMoneyIn.trim())  f = f.filter(r => fmtMoney(r.money_in).includes(fMoneyIn.trim()));
-    if (fMoneyOut.trim()) f = f.filter(r => fmtMoney(r.money_out).includes(fMoneyOut.trim()));
-    if (fCreated.trim())  f = f.filter(r => formatDateTime(r.created_at).toLowerCase().includes(fCreated.trim().toLowerCase()));
+    if (fDays.trim())    f = f.filter(r => fmtDays(r.days).includes(fDays.trim()));
+    if (fRate.trim())    f = f.filter(r => fmtRate(r.rate).includes(fRate.trim()));
+    if (fMoney.trim())   f = f.filter(r => fmtMoney(r.money).includes(fMoney.trim()));
+    if (fCreated.trim()) f = f.filter(r => formatDateTime(r.created_at).toLowerCase().includes(fCreated.trim().toLowerCase()));
     return f;
-  }, [rows, fFileId, fAppNo, fDateIn, fDateOut, fDealer, fDays, fRate, fMoneyIn, fMoneyOut, fCreated]);
+  }, [rows, fFileId, fAppNo, fDateIn, fDateOut, fDealer, fDays, fRate, fMoney, fCreated]);
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    if (!rows.length) return { total: 0, uniqueFiles: 0, totalMoneyIn: '—', totalMoneyOut: '—', avgRate: '—', avgDays: '—' };
-    const uniqueFiles  = new Set(rows.map(r => r.file_id)).size;
-    const totalIn      = rows.reduce((a, b) => a + b.money_in, 0);
-    const totalOut     = rows.reduce((a, b) => a + b.money_out, 0);
-    const avgRate      = rows.reduce((a, b) => a + b.rate, 0) / rows.length;
-    const avgDays      = rows.reduce((a, b) => a + b.days, 0) / rows.length;
+    if (!rows.length) return { total: 0, uniqueFiles: 0, totalMoney: '—', avgRate: '—', avgDays: '—' };
+    const uniqueFiles = new Set(rows.map(r => r.file_id)).size;
+    const totalMoney  = rows.reduce((a, b) => a + b.money, 0);
+    const avgRate     = rows.reduce((a, b) => a + b.rate, 0) / rows.length;
+    const avgDays     = rows.reduce((a, b) => a + b.days, 0) / rows.length;
     return {
-      total:       rows.length,
+      total: rows.length,
       uniqueFiles,
-      totalMoneyIn:  fmtMoney(totalIn),
-      totalMoneyOut: fmtMoney(totalOut),
-      avgRate:     fmtRate(avgRate),
-      avgDays:     fmtDays(avgDays),
+      totalMoney: fmtMoney(totalMoney),
+      avgRate:    fmtRate(avgRate),
+      avgDays:    fmtDays(avgDays),
     };
   }, [rows]);
 
-  const hasActiveFilters = fFileId || fAppNo || fDateIn || fDateOut || fDealer || fDays || fRate || fMoneyIn || fMoneyOut || fCreated;
+  const hasActiveFilters = fFileId || fAppNo || fDateIn || fDateOut || fDealer || fDays || fRate || fMoney || fCreated;
   const totalPages    = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = useMemo(
     () => filteredData.slice((currentPage-1)*itemsPerPage, currentPage*itemsPerPage),
     [filteredData, currentPage]
   );
-  useEffect(() => { setCurrentPage(1); }, [fFileId, fAppNo, fDateIn, fDateOut, fDealer, fDays, fRate, fMoneyIn, fMoneyOut, fCreated]);
+  useEffect(() => { setCurrentPage(1); }, [fFileId, fAppNo, fDateIn, fDateOut, fDealer, fDays, fRate, fMoney, fCreated]);
 
   const handleClearFilters = useCallback(() => {
     setFFileId(''); setFAppNo(''); setFDateIn(''); setFDateOut(''); setFDealer('');
-    setFDays(''); setFRate(''); setFMoneyIn(''); setFMoneyOut(''); setFCreated('');
+    setFDays(''); setFRate(''); setFMoney(''); setFCreated('');
   }, []);
 
   // ── Delete handler — deletes ALL rows with the same file_id ───────────────
-  const openDeleteModal = (r: RepoRow) => { setTargetRow(r); setIsDeleteModalOpen(true); };
+  const openDeleteModal = (r: DepoRow) => { setTargetRow(r); setIsDeleteModalOpen(true); };
 
   const handleDelete = async () => {
     if (!targetRow) return;
     setIsDeleting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delete_repo_data?file_id=${encodeURIComponent(targetRow.file_id)}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE_URL}/api/delete_depo_data?file_id=${encodeURIComponent(targetRow.file_id)}`, { method: 'DELETE' });
       if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
       setIsDeleteModalOpen(false); setTargetRow(null); mutate();
       showToast(`All records for file "${targetRow.file_id}" deleted!`, 'success');
@@ -242,11 +236,6 @@ const RepoDataPage = () => {
     () => targetRow ? rows.filter(r => r.file_id === targetRow.file_id).length : 0,
     [targetRow, rows]
   );
-
-  // ── Styles ────────────────────────────────────────────────────────────────
-  const labelStyle: React.CSSProperties = {
-    display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151', fontSize: '13px',
-  };
 
   // ── Nav pill ──────────────────────────────────────────────────────────────
   const NavBtn = ({ page }: { page: typeof NAV_PAGES[0] }) => {
@@ -351,14 +340,13 @@ const RepoDataPage = () => {
         <div style={{ width: '100%', maxWidth: '1600px' }}>
 
           {/* ── Stats cards ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px', marginBottom: '16px' }}>
             {[
-              { label: 'Total Records',    value: String(stats.total),       color: '#0a3b5c', bg: '#e2e8f0', icon: 'database'           },
-              { label: 'Unique Files',     value: String(stats.uniqueFiles), color: '#065f46', bg: '#d1fae5', icon: 'folder_open'        },
-              { label: 'Avg. Rate',        value: stats.avgRate,             color: '#7e22ce', bg: '#f3e8ff', icon: 'percent'            },
-              { label: 'Avg. Days',        value: stats.avgDays,             color: '#92400e', bg: '#fef3c7', icon: 'today'              },
-              { label: 'Total Money In',   value: stats.totalMoneyIn,        color: '#065f46', bg: '#d1fae5', icon: 'arrow_downward'     },
-              { label: 'Total Money Out',  value: stats.totalMoneyOut,       color: '#991b1b', bg: '#fee2e2', icon: 'arrow_upward'       },
+              { label: 'Total Records',  value: String(stats.total),       color: '#0a3b5c', bg: '#e2e8f0', icon: 'database'    },
+              { label: 'Unique Files',   value: String(stats.uniqueFiles), color: '#065f46', bg: '#d1fae5', icon: 'folder_open' },
+              { label: 'Avg. Rate',      value: stats.avgRate,             color: '#7e22ce', bg: '#f3e8ff', icon: 'percent'     },
+              { label: 'Avg. Days',      value: stats.avgDays,             color: '#92400e', bg: '#fef3c7', icon: 'today'       },
+              { label: 'Total Money',    value: stats.totalMoney,          color: '#065f46', bg: '#d1fae5', icon: 'payments'    },
             ].map(s => (
               <div key={s.label} style={{ background: 'white', padding: '13px 14px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '34px', height: '34px', background: s.bg, borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -375,16 +363,15 @@ const RepoDataPage = () => {
           {/* ── Filter bar ── */}
           <div style={{ background: 'white', padding: '11px 14px', borderRadius: '12px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,40,70,0.05)', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <ColSearch value={fFileId}   onChange={setFFileId}   placeholder="File ID"     icon="folder"        flex="120px" />
-              <ColSearch value={fAppNo}    onChange={setFAppNo}    placeholder="App No."     icon="tag"           flex="120px" />
+              <ColSearch value={fFileId}  onChange={setFFileId}  placeholder="File ID"  icon="folder"    flex="120px" />
+              <ColSearch value={fAppNo}   onChange={setFAppNo}   placeholder="App No."  icon="tag"       flex="120px" />
               <SmartDateInput value={fDateIn}  onChange={setFDateIn}  placeholder="Date In"  flex="130px" />
               <SmartDateInput value={fDateOut} onChange={setFDateOut} placeholder="Date Out" flex="130px" />
-              <ColSearch value={fDealer}   onChange={setFDealer}   placeholder="Dealer"      icon="business"      flex="120px" />
-              <ColSearch value={fDays}     onChange={setFDays}     placeholder="Days"        icon="today"         flex="100px"  />
-              <ColSearch value={fRate}     onChange={setFRate}     placeholder="Rate"        icon="percent"       flex="100px"  />
-              <ColSearch value={fMoneyIn}  onChange={setFMoneyIn}  placeholder="Money In"   icon="arrow_downward" flex="120px" />
-              <ColSearch value={fMoneyOut} onChange={setFMoneyOut} placeholder="Money Out"  icon="arrow_upward"  flex="140px" />
-              <ColSearch value={fCreated}  onChange={setFCreated}  placeholder="Created"    icon="schedule"      flex="130px" />
+              <ColSearch value={fDealer}  onChange={setFDealer}  placeholder="Dealer"   icon="business"  flex="120px" />
+              <ColSearch value={fDays}    onChange={setFDays}    placeholder="Days"     icon="today"     flex="100px" />
+              <ColSearch value={fRate}    onChange={setFRate}    placeholder="Rate"     icon="percent"   flex="100px" />
+              <ColSearch value={fMoney}   onChange={setFMoney}   placeholder="Money"   icon="payments"  flex="130px" />
+              <ColSearch value={fCreated} onChange={setFCreated} placeholder="Created" icon="schedule"  flex="130px" />
               {hasActiveFilters && (
                 <button onClick={handleClearFilters} style={{ padding: '7px 10px', fontSize: '12px', fontWeight: '500', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>Clear
@@ -394,17 +381,16 @@ const RepoDataPage = () => {
 
             {hasActiveFilters && (
               <div style={{ marginTop: '7px', fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap', padding: '4px 8px', background: '#f1f5f9', borderRadius: '7px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#0a3b5c' }}>filter_alt</span>
-                {fFileId   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>FileID:<strong>{fFileId}</strong></span>}
-                {fAppNo    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>App:<strong>{fAppNo}</strong></span>}
-                {fDateIn   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>DateIn:<strong>{fDateIn}</strong></span>}
-                {fDateOut  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>DateOut:<strong>{fDateOut}</strong></span>}
-                {fDealer   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Dealer:<strong>{fDealer}</strong></span>}
-                {fDays     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Days:<strong>{fDays}</strong></span>}
-                {fRate     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Rate:<strong>{fRate}</strong></span>}
-                {fMoneyIn  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>In:<strong>{fMoneyIn}</strong></span>}
-                {fMoneyOut && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Out:<strong>{fMoneyOut}</strong></span>}
-                {fCreated  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Created:<strong>{fCreated}</strong></span>}
+                <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#065f46' }}>filter_alt</span>
+                {fFileId  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>FileID:<strong>{fFileId}</strong></span>}
+                {fAppNo   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>App:<strong>{fAppNo}</strong></span>}
+                {fDateIn  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>DateIn:<strong>{fDateIn}</strong></span>}
+                {fDateOut && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>DateOut:<strong>{fDateOut}</strong></span>}
+                {fDealer  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Dealer:<strong>{fDealer}</strong></span>}
+                {fDays    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Days:<strong>{fDays}</strong></span>}
+                {fRate    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Rate:<strong>{fRate}</strong></span>}
+                {fMoney   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Money:<strong>{fMoney}</strong></span>}
+                {fCreated && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Created:<strong>{fCreated}</strong></span>}
                 <span style={{ marginLeft: 'auto' }}>{filteredData.length} result{filteredData.length!==1?'s':''}</span>
               </div>
             )}
@@ -414,8 +400,8 @@ const RepoDataPage = () => {
           <div style={{ background: 'white', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,40,70,0.06)', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
             {isLoading ? (
               <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '36px', marginBottom: '12px', display: 'block', color: '#0a3b5c', animation: 'spin 2s linear infinite' }}>refresh</span>
-                Loading Repo data…
+                <span className="material-symbols-outlined" style={{ fontSize: '36px', marginBottom: '12px', display: 'block', color: '#065f46', animation: 'spin 2s linear infinite' }}>refresh</span>
+                Loading Depo data…
               </div>
             ) : error ? (
               <div style={{ padding: '60px', textAlign: 'center', color: '#ef4444' }}>
@@ -424,8 +410,8 @@ const RepoDataPage = () => {
               </div>
             ) : paginatedData.length === 0 ? (
               <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '44px', marginBottom: '12px', display: 'block', color: '#94a3b8' }}>account_balance</span>
-                {hasActiveFilters ? 'No records match your filters.' : 'No Repo records found.'}
+                <span className="material-symbols-outlined" style={{ fontSize: '44px', marginBottom: '12px', display: 'block', color: '#94a3b8' }}>savings</span>
+                {hasActiveFilters ? 'No records match your filters.' : 'No Depo records found.'}
                 {hasActiveFilters && <button onClick={handleClearFilters} style={{ display: 'block', margin: '12px auto 0', padding: '7px 16px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#475569', cursor: 'pointer', fontSize: '12px' }}>Clear filters</button>}
               </div>
             ) : (
@@ -433,34 +419,33 @@ const RepoDataPage = () => {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ background: 'linear-gradient(90deg, #0a3b5c 0%, #1a4b70 100%)', borderBottom: '2px solid #e9b741' }}>
+                      <tr style={{ background: 'linear-gradient(90deg, #065f46 0%, #047857 100%)', borderBottom: '2px solid #e9b741' }}>
                         {[
-                          { label: '#',          w: '40px'  },
-                          { label: 'FILE ID',    w: '120px' },
-                          { label: 'APP NO.',    w: '130px' },
-                          { label: 'DATE IN',    w: '100px' },
-                          { label: 'DATE OUT',   w: '100px' },
-                          { label: 'DEALER FROM',w: '130px' },
-                          { label: 'DEALER TO',  w: '130px' },
-                          { label: 'DAYS',       w: '50px'  },
-                          { label: 'RATE',       w: '80px'  },
-                          { label: 'MONEY IN',   w: '140px' },
-                          { label: 'MONEY OUT',  w: '140px' },
-                          { label: 'CREATED AT', w: '140px' },
-                          { label: 'DELETE',     w: '80px'  },
+                          { label: '#',           w: '40px'  },
+                          { label: 'FILE ID',     w: '120px' },
+                          { label: 'APP NO.',     w: '130px' },
+                          { label: 'DATE IN',     w: '100px' },
+                          { label: 'DATE OUT',    w: '100px' },
+                          { label: 'DEALER FROM', w: '130px' },
+                          { label: 'DEALER TO',   w: '130px' },
+                          { label: 'DAYS',        w: '70px'  },
+                          { label: 'RATE',        w: '80px'  },
+                          { label: 'MONEY',       w: '150px' },
+                          { label: 'CREATED AT',  w: '140px' },
+                          { label: 'DELETE',      w: '80px'  },
                         ].map(col => (
                           <th key={col.label} style={{ padding: '11px 12px', textAlign: 'center', width: col.w, fontWeight: '600', color: 'rgba(255,255,255,0.9)', fontSize: '10.5px', letterSpacing: '0.7px', whiteSpace: 'nowrap' }}>{col.label}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedData.map((item: RepoRow, index: number) => {
-                        const idx = (currentPage-1)*itemsPerPage + index + 1;
+                      {paginatedData.map((item: DepoRow, index: number) => {
+                        const idx    = (currentPage-1)*itemsPerPage + index + 1;
                         const isEven = index % 2 === 0;
                         return (
-                          <tr key={item.id}
+                          <tr key={`${item.file_id}-${index}`}
                             style={{ borderBottom: '1px solid #f1f5f9', background: isEven ? 'white' : '#fafbfc', transition: 'background 0.1s' }}
-                            onMouseEnter={e=>{e.currentTarget.style.background='#f0f7ff';}}
+                            onMouseEnter={e=>{e.currentTarget.style.background='#f0fdf4';}}
                             onMouseLeave={e=>{e.currentTarget.style.background=isEven?'white':'#fafbfc';}}
                           >
                             {/* # */}
@@ -533,39 +518,25 @@ const RepoDataPage = () => {
                               </span>
                             </td>
 
-                            {/* MONEY IN */}
+                            {/* MONEY */}
                             <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                  <span className="material-symbols-outlined" style={{ fontSize: '11px', color: '#15803d' }}>arrow_downward</span>
-                                  <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: '700', color: '#166534', whiteSpace: 'nowrap' }}>{fmtMoney(item.money_in)}</span>
-                                </div>
-                                <span style={{ fontSize: '9px', color: '#86efac', letterSpacing: '0.5px', fontWeight: '500' }}></span>
-                              </div>
-                            </td>
-
-                            {/* MONEY OUT */}
-                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                  <span className="material-symbols-outlined" style={{ fontSize: '11px', color: '#dc2626' }}>arrow_upward</span>
-                                  <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: '700', color: '#991b1b', whiteSpace: 'nowrap' }}>{fmtMoney(item.money_out)}</span>
-                                </div>
-                                <span style={{ fontSize: '9px', color: '#fca5a5', letterSpacing: '0.5px', fontWeight: '500' }}></span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '11px', color: '#065f46' }}>payments</span>
+                                <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: '700', color: '#166534', whiteSpace: 'nowrap' }}>{fmtMoney(item.money)}</span>
                               </div>
                             </td>
 
                             {/* CREATED AT */}
                             <td style={{ padding: '10px 12px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '11px', color: '#0a3b5c', flexShrink: 0 }}>schedule</span>
+                                <span className="material-symbols-outlined" style={{ fontSize: '11px', color: '#065f46', flexShrink: 0 }}>schedule</span>
                                 <span style={{ fontSize: '11px', color: item.created_at?'#374151':'#cbd5e1', fontFamily: item.created_at?'monospace':'inherit', fontWeight: item.created_at?'500':'400', whiteSpace: 'nowrap' }}>
                                   {formatDateTime(item.created_at)}
                                 </span>
                               </div>
                             </td>
 
-                            {/* DELETE (deletes all rows with same file_id) */}
+                            {/* DELETE */}
                             <td style={{ padding: '10px 12px', textAlign: 'center' }}>
                               <button onClick={() => openDeleteModal(item)}
                                 style={{ padding: '4px 9px', fontSize: '11px', fontWeight: '500', background: '#fff5f5', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', transition: 'all 0.13s', whiteSpace: 'nowrap' }}
@@ -586,17 +557,17 @@ const RepoDataPage = () => {
                   <div style={{ padding: '12px 18px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                     <div style={{ fontSize: '12px', color: '#64748b' }}>Showing {(currentPage-1)*itemsPerPage+1}–{Math.min(currentPage*itemsPerPage, filteredData.length)} of {filteredData.length}</div>
                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      <button onClick={()=>setCurrentPage(p=>p-1)} disabled={currentPage===1} style={{ padding: '5px 10px', fontSize: '12px', fontWeight: '500', background: currentPage===1?'#f1f5f9':'white', color: currentPage===1?'#94a3b8':'#0a3b5c', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: currentPage===1?'not-allowed':'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <button onClick={()=>setCurrentPage(p=>p-1)} disabled={currentPage===1} style={{ padding: '5px 10px', fontSize: '12px', fontWeight: '500', background: currentPage===1?'#f1f5f9':'white', color: currentPage===1?'#94a3b8':'#065f46', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: currentPage===1?'not-allowed':'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}>
                         <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>chevron_left</span>Prev
                       </button>
                       {Array.from({length:totalPages},(_,i)=>i+1).map(page => {
                         const show = page===1||page===totalPages||(page>=currentPage-2&&page<=currentPage+2);
                         const ell  = page===currentPage-3||page===currentPage+3;
-                        if (show) return <button key={page} onClick={()=>setCurrentPage(page)} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '500', background: currentPage===page?'#0a3b5c':'white', color: currentPage===page?'white':'#0f172a', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer' }}>{page}</button>;
+                        if (show) return <button key={page} onClick={()=>setCurrentPage(page)} style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '500', background: currentPage===page?'#065f46':'white', color: currentPage===page?'white':'#0f172a', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer' }}>{page}</button>;
                         if (ell) return <span key={`e${page}`} style={{ width: '28px', textAlign: 'center', color: '#94a3b8', fontSize: '12px' }}>…</span>;
                         return null;
                       })}
-                      <button onClick={()=>setCurrentPage(p=>p+1)} disabled={currentPage===totalPages} style={{ padding: '5px 10px', fontSize: '12px', fontWeight: '500', background: currentPage===totalPages?'#f1f5f9':'white', color: currentPage===totalPages?'#94a3b8':'#0a3b5c', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: currentPage===totalPages?'not-allowed':'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                      <button onClick={()=>setCurrentPage(p=>p+1)} disabled={currentPage===totalPages} style={{ padding: '5px 10px', fontSize: '12px', fontWeight: '500', background: currentPage===totalPages?'#f1f5f9':'white', color: currentPage===totalPages?'#94a3b8':'#065f46', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: currentPage===totalPages?'not-allowed':'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}>
                         Next<span className="material-symbols-outlined" style={{ fontSize: '13px' }}>chevron_right</span>
                       </button>
                     </div>
@@ -701,9 +672,9 @@ const RepoDataPage = () => {
           <div style={{ background: 'white', borderRadius: '20px', padding: '28px', width: '480px', maxWidth: '95vw', boxShadow: '0 24px 64px rgba(0,0,0,0.3)', border: '1px solid #e2e8f0' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#0a3b5c', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#065f46', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#dc2626' }}>warning</span>
-                Delete Repo Records
+                Delete Depo Records
               </h2>
               <button onClick={() => setIsDeleteModalOpen(false)} style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>×</button>
             </div>
@@ -730,8 +701,7 @@ const RepoDataPage = () => {
                 <div>Dealer To: <strong>{targetRow.dealer_to}</strong></div>
                 <div>Days: <strong style={{ fontFamily: 'monospace' }}>{fmtDays(targetRow.days)}</strong></div>
                 <div>Rate: <strong style={{ fontFamily: 'monospace' }}>{fmtRate(targetRow.rate)}</strong></div>
-                <div>Money In: <strong style={{ fontFamily: 'monospace' }}>{fmtMoney(targetRow.money_in)}</strong></div>
-                <div>Money Out: <strong style={{ fontFamily: 'monospace' }}>{fmtMoney(targetRow.money_out)}</strong></div>
+                <div style={{ gridColumn: '1 / -1' }}>Money: <strong style={{ fontFamily: 'monospace' }}>{fmtMoney(targetRow.money)}</strong></div>
               </div>
               <p style={{ margin: '10px 0 0 20px', fontSize: '11px', color: '#dc2626' }}>⚠️ This action cannot be undone.</p>
             </div>
@@ -757,11 +727,11 @@ const RepoDataPage = () => {
         @keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
         button:hover:not(:disabled){transform:translateY(-1px);}
         button:active:not(:disabled){transform:translateY(0);}
-        input:focus{border-color:#0a3b5c!important;box-shadow:0 0 0 3px rgba(10,59,92,0.1);}
+        input:focus{border-color:#065f46!important;box-shadow:0 0 0 3px rgba(6,95,70,0.1);}
         nav::-webkit-scrollbar{height:0;}
       `}</style>
     </div>
   );
 };
 
-export default RepoDataPage;
+export default DepoDataPage;

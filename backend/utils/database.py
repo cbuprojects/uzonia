@@ -384,16 +384,16 @@ async def get_filtered_uzonia_data(till_date: date) -> List[Dict]:
         return None
 
 
-async def get_n_uzonia_data(cb_date: date, till_date: date) -> list:
+async def get_latest_n_uzonia(latest_n: int) -> list:
     """Get uzonia data for last n days."""
     try:
         async with pool.acquire() as conn:
             rows = await conn.fetch("""
                 SELECT uzonia, days, uzonia_date
                 FROM uzonia_data
-                WHERE uzonia_date < $1 AND uzonia_date >= $2
                 ORDER BY uzonia_date DESC
-            """, cb_date, till_date)
+                LIMIT $1
+            """, latest_n)
             if rows:
                 rows = [[float(row['uzonia']), float(row['days'])] for row in rows]
             else:
@@ -675,7 +675,7 @@ async def delete_repo_data(file_id: str) -> bool:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                DELETE FROM uzonia_uploads
+                DELETE FROM repo_data
                 WHERE file_id = $1
                 """, file_id
             )
@@ -715,8 +715,8 @@ async def get_all_depo_data():
             rows = await conn.fetch(
                 """
                 SELECT file_id, number_of_application, date_in, date_out, dealer_from, dealer_to, rate, days, money, created_at
-                FROM repo_data
-                ORDER BY file_date DESC
+                FROM depo_data
+                ORDER BY created_at DESC
                 """
             )
             if rows:
@@ -761,7 +761,7 @@ async def delete_depo_data(file_id: str) -> bool:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                DELETE FROM uzonia_uploads
+                DELETE FROM depo_data
                 WHERE file_id = $1
                 """, file_id
             )
