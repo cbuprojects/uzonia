@@ -302,6 +302,7 @@ async def expire_user_session(session_id: str) -> bool:
     return True if affected > 0 else False
 
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # user data
 # ----------------------------------------------------------------------------------------------------------------------
@@ -383,6 +384,7 @@ async def get_all_users():
     return [dict(row) for row in rows]
 
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 # user sessions
 # ----------------------------------------------------------------------------------------------------------------------
@@ -433,6 +435,7 @@ async def edit_session_status(session_id: str, status: str, expire_time: datetim
         )
     affected = int(result.split()[-1])  # asyncpg returns e.g. "UPDATE 1"
     return True if affected > 0 else False
+
 
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -607,9 +610,26 @@ async def get_all_holiday_data() -> List[Dict]:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT unique_job_id, holiday_date, description, updated_at, created_at
-                FROM holiday_data
-                ORDER BY holiday_date ASC
+                SELECT
+                    h.unique_job_id,
+                    h.holiday_date,
+                    h.description,
+                    h.updated_at,
+                    h.created_at,
+
+                    ua.user_id,
+                    usr.username,
+                    usr.first_name,
+                    usr.last_name,
+                    usr.department
+                
+                FROM holiday_data h
+                LEFT JOIN user_actions ua
+                    ON ua.unique_job_id = h.unique_job_id
+                LEFT JOIN users usr
+                    ON usr.user_id = ua.user_id
+                
+                ORDER BY h.holiday_date ASC;
                 """
             )
             if rows:
@@ -617,7 +637,11 @@ async def get_all_holiday_data() -> List[Dict]:
                          'holiday_date': row['holiday_date'],
                          'description': row['description'],
                          'updated_at': row['updated_at'],
-                         'created_at': row['created_at']} for row in rows]
+                         'created_at': row['created_at'],
+                         'username': row['username'],
+                         'first_name': row['first_name'],
+                         'last_name': row['last_name'],
+                         'department': row['department']} for row in rows]
             else:
                 return []
     except Exception as e:
@@ -740,9 +764,33 @@ async def get_all_uzonia_data() -> List[Dict]:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT unique_job_id, file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days, created_at
-                FROM uzonia_data
-                ORDER BY uzonia_date DESC
+                SELECT
+                    ud.unique_job_id,
+                    ud.file_id,
+                    ud.rate,
+                    ud.uzonia,
+                    ud.day_7_uzonia,
+                    ud.day_30_uzonia,
+                    ud.day_90_uzonia,
+                    ud.day_180_uzonia,
+                    ud.index,
+                    ud.uzonia_date,
+                    ud.days,
+                    ud.created_at,
+                    
+                
+                    ua.user_id,
+                    usr.username,
+                    usr.first_name,
+                    usr.last_name
+                
+                FROM uzonia_data ud
+                LEFT JOIN user_actions ua
+                    ON ua.unique_job_id = ud.unique_job_id
+                LEFT JOIN users usr
+                    ON usr.user_id = ua.user_id
+                
+                ORDER BY ud.uzonia_date DESC;
                 """
             )
             if rows:
@@ -757,7 +805,10 @@ async def get_all_uzonia_data() -> List[Dict]:
                          'index': row['index'],
                          'uzonia_date': row['uzonia_date'],
                          'days': row['days'],
-                         'created_at': row['created_at']} for row in rows]
+                         'created_at': row['created_at'],
+                         'username': row['username'],
+                         'first_name': row['first_name'],
+                         'last_name': row['last_name']} for row in rows]
             else:
                 return []
     except Exception as e:
@@ -914,7 +965,6 @@ async def get_latest_uzonia_data(cb_date: date) -> Dict:
         return None
 
 
-
 async def get_year_first_uzonia_data(year_first_date: date):
     """Get nth uzonia data."""
     try:
@@ -942,6 +992,8 @@ async def get_year_first_uzonia_data(year_first_date: date):
     except Exception as e:
         print(f'Could not get uzonia data from database: {e}')
         return None
+
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # uzonia_uploads

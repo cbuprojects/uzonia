@@ -1075,13 +1075,12 @@ async def get_calculation_page_api(user_session_data = Depends(get_current_user)
 
 
 
-
 # ---------------------------------------------------------------------------
 # holiday_data
 # ---------------------------------------------------------------------------
 
 @app.get("/api/get_single_holiday", tags=["Holiday Date"])
-async def get_single_holiday_api(holiday_date: date):
+async def get_single_holiday_api(holiday_date: date, user_session_data = Depends(get_current_user)):
     logger.info("get_single_holiday | holiday_date=%s", holiday_date)
     if not holiday_date:
         logger.warning("get_single_holiday | Missing holiday_date parameter")
@@ -1097,81 +1096,143 @@ async def get_single_holiday_api(holiday_date: date):
 
 
 @app.get("/api/get_all_holidays", tags=["All Holidays"])
-async def get_all_holidays_api():
+async def get_all_holidays_api(user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("get_all_holidays | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
+
     logger.info("get_all_holidays | Fetching all holidays")
     all_holidays_data = await get_all_holiday_data()
 
     if not all_holidays_data:
         logger.warning("get_all_holidays | No holidays found in DB")
-        raise HTTPException(status_code=404, detail="Such data does not exist!")
+        return {"Status": 'Failed', 'user': user, 'Data': all_holidays_data}
 
     logger.info("get_all_holidays | Returned %d records", len(all_holidays_data))
-    return {"Status": 'Success', 'Data': all_holidays_data}
+    return {"Status": 'Success', 'user': user, 'Data': all_holidays_data}
 
 
 @app.post("/api/add_new_holiday", tags=["Add New Code"])
-async def add_new_holiday_api(new_holiday: date, new_description: str):
-    logger.info("add_new_holiday | new_holiday=%s  new_description=%s old_holiday=%s", new_holiday, new_description)
-    if not new_holiday or not new_description:
-        logger.warning("add_new_holiday | Missing parameters")
-        raise HTTPException(status_code=400, detail="new_holiday and new_description parameters are required!")
-
-    checking_data_existence = await get_single_holiday_data(holiday_date=new_holiday)
-    if checking_data_existence:
-        logger.warning("add_new_holiday | Duplicate: new_holiday=%s already exists", new_holiday)
-        raise HTTPException(status_code=404, detail="Such data already exists!")
+async def add_new_holiday_api(new_holiday: date, new_description: str, user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("add_new_holiday | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
 
     unique_job_id = str(uuid4().hex)
-    updated_row = await add_holiday_data(unique_job_id=unique_job_id, holiday_date=new_holiday, description=new_description)
-    if not updated_row:
-        logger.error("add_new_holiday | DB insert failed for new_holiday=%s", new_holiday)
-        raise HTTPException(status_code=404, detail="Could not add the new code to database!")
+    user_session = await get_session(session_id=user_session_data['session_id'])
 
-    logger.info("add_new_holiday | Successfully added new_holiday=%s", new_holiday)
-    return {"Status": 'Success', 'Data': 'Added successfully!'}
+    try:
+        logger.info("add_new_holiday | new_holiday=%s  new_description=%s old_holiday=%s", new_holiday, new_description)
+        if not new_holiday or not new_description:
+            logger.warning("add_new_holiday | Missing parameters")
+            raise HTTPException(status_code=400, detail="new_holiday and new_description parameters are required!")
+
+        checking_data_existence = await get_single_holiday_data(holiday_date=new_holiday)
+        if checking_data_existence:
+            logger.warning("add_new_holiday | Duplicate: new_holiday=%s already exists", new_holiday)
+            raise HTTPException(status_code=404, detail="Such data already exists!")
+
+
+        updated_row = await add_holiday_data(unique_job_id=unique_job_id, holiday_date=new_holiday, description=new_description)
+        if not updated_row:
+            logger.error("add_new_holiday | DB insert failed for new_holiday=%s", new_holiday)
+            raise HTTPException(status_code=404, detail="Could not add the new code to database!")
+
+        # Adding Action details
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Added New Holiday', action_status="success", created_at=datetime.now(tz))
+        logger.info("add_new_holiday | Successfully added new_holiday=%s", new_holiday)
+        return {"Status": 'Success', 'Data': 'Added successfully!'}
+    except Exception as e:
+        # Adding Action details
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Added New Holiday', action_status="failed", created_at=datetime.now(tz))
+        logger.error("add_new_holiday | Failed to add new_holiday=%s", e)
+
 
 
 @app.put('/api/edit_holiday', tags=["Edit Code Status"])
-async def edit_holiday_api(description: str, old_holiday_date: date):
-    logger.info("edit_holiday | holiday_date=%s  description=%s", old_holiday_date, description)
-    if not old_holiday_date:
-        logger.warning("edit_holiday | Missing holiday_date")
-        raise HTTPException(status_code=400, detail="Holiday date is required")
+async def edit_holiday_api(description: str, old_holiday_date: date, user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("edit_holiday | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
 
-    checking_data_existence = await get_single_holiday_data(holiday_date=old_holiday_date)
-    if not checking_data_existence:
-        logger.warning("edit_holiday | Not found: holiday_date=%s", old_holiday_date)
-        raise HTTPException(status_code=404, detail="Such data does not exist!")
+    unique_job_id = str(uuid4().hex)
+    user_session = await get_session(session_id=user_session_data['session_id'])
 
-    now = datetime.now(tz)
-    updated_row = await edit_holiday_data(description=description, updated_at=now, holiday_date=old_holiday_date)
-    if not updated_row:
-        logger.error("edit_holiday | DB update failed for old_holiday_date=%s", old_holiday_date)
+    try:
+        logger.info("edit_holiday | holiday_date=%s  description=%s", old_holiday_date, description)
+        if not old_holiday_date:
+            logger.warning("edit_holiday | Missing holiday_date")
+            raise HTTPException(status_code=400, detail="Holiday date is required")
+
+        checking_data_existence = await get_single_holiday_data(holiday_date=old_holiday_date)
+        if not checking_data_existence:
+            logger.warning("edit_holiday | Not found: holiday_date=%s", old_holiday_date)
+            raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+        now = datetime.now(tz)
+        updated_row = await edit_holiday_data(description=description, updated_at=now, holiday_date=old_holiday_date)
+        if not updated_row:
+            logger.error("edit_holiday | DB update failed for old_holiday_date=%s", old_holiday_date)
+            raise HTTPException(status_code=404, detail="Could not update the holiday!")
+
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Updated Holiday', action_status="success", created_at=datetime.now(tz))
+
+        logger.info("edit_holiday | Holiday updated for old_holiday_date=%s → %s", old_holiday_date, description)
+        return {"Status": 'Success', 'Data': 'Status updated successfully!'}
+    except Exception as e:
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Updated Holiday', action_status="failed", created_at=datetime.now(tz))
+        logger.error("edit_holiday | Failed to update holiday=%s", e)
         raise HTTPException(status_code=404, detail="Could not update the holiday!")
-
-    logger.info("edit_holiday | Holiday updated for old_holiday_date=%s → %s", old_holiday_date, description)
-    return {"Status": 'Success', 'Data': 'Status updated successfully!'}
 
 
 @app.delete('/api/delete_holiday', tags=["Delete Holiday"])
-async def delete_holiday_api(holiday_date: date):
-    logger.info("delete_holiday | holiday_date=%s", holiday_date)
-    if not holiday_date:
-        logger.warning("delete_holiday | Missing holiday_date")
-        raise HTTPException(status_code=400, detail="Holiday is required")
+async def delete_holiday_api(holiday_date: date, user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("delete_holiday | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
 
-    checking_data_existence = await get_single_holiday_data(holiday_date=holiday_date)
-    if not checking_data_existence:
-        logger.warning("delete_holiday | Not found: holiday_date=%s", holiday_date)
-        raise HTTPException(status_code=404, detail="Such data does not exist!")
+    unique_job_id = str(uuid4().hex)
+    user_session = await get_session(session_id=user_session_data['session_id'])
 
-    deleted_row = await delete_holiday_data(holiday_date=holiday_date)
-    if not deleted_row:
-        logger.error("delete_holiday | DB delete failed for holiday_date=%s", holiday_date)
-        raise HTTPException(status_code=404, detail="Such data does not exist!")
+    try:
+        logger.info("delete_holiday | holiday_date=%s", holiday_date)
+        if not holiday_date:
+            logger.warning("delete_holiday | Missing holiday_date")
+            raise HTTPException(status_code=400, detail="Holiday is required")
 
-    logger.info("delete_holiday | Deleted holiday_date=%s", holiday_date)
-    return {"Status": 'Success', 'Data': 'Deleted successfully!'}
+        checking_data_existence = await get_single_holiday_data(holiday_date=holiday_date)
+        if not checking_data_existence:
+            logger.warning("delete_holiday | Not found: holiday_date=%s", holiday_date)
+            raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+        deleted_row = await delete_holiday_data(holiday_date=holiday_date)
+        if not deleted_row:
+            logger.error("delete_holiday | DB delete failed for holiday_date=%s", holiday_date)
+            raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Deleted Holiday', action_status="success", created_at=datetime.now(tz))
+        logger.info("delete_holiday | Deleted holiday_date=%s", holiday_date)
+        return {"Status": 'Success', 'Data': 'Deleted successfully!'}
+    except Exception as e:
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Deleted Holiday', action_status="failed", created_at=datetime.now(tz))
+        logger.error("delete_holiday | Failed to delete holiday=%s, error=%s", holiday_date, e)
+        raise HTTPException(status_code=404, detail="Could not delete the holiday!")
 
 
 
@@ -1180,7 +1241,7 @@ async def delete_holiday_api(holiday_date: date):
 # ---------------------------------------------------------------------------
 
 @app.get("/api/get_single_uzonia", tags=["Get Single Uzonia"])
-async def get_single_uzonia_api(uzonia_date: date):
+async def get_single_uzonia_api(uzonia_date: date, user_session_data = Depends(get_current_user)):
     logger.info("get_single_uzonia | uzonia_date=%s", uzonia_date)
     if not uzonia_date:
         logger.warning("get_single_uzonia | Missing uzonia_date parameter")
@@ -1196,25 +1257,41 @@ async def get_single_uzonia_api(uzonia_date: date):
 
 
 @app.get("/api/get_all_uzonia_data", tags=["Get All Uzonia"])
-async def get_all_uzonia_data_api():
+async def get_all_uzonia_data_api(user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("get_all_uzonia_data | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
+
     logger.info("get_all_uzonia_data | Fetching all uzonia data")
     all_uzonia_data = await get_all_uzonia_data()
 
     if not all_uzonia_data:
         logger.warning("get_all_uzonia_data | No uzonia data found in DB")
-        raise HTTPException(status_code=404, detail="Such data does not exist!")
+        return {"Status": 'Success', 'user': user, 'Data': all_uzonia_data}
 
     logger.info("get_all_uzonia_data | Returned %d records", len(all_uzonia_data))
-    return {"Status": 'Success', 'Data': all_uzonia_data}
+    return {"Status": 'Success', 'user': user, 'Data': all_uzonia_data}
 
 
+class AddUzoniaData(BaseModel):
+    file_id: str
+    uzonia: float
+    day_7_uzonia: float
+    day_30_uzonia: float
+    day_90_uzonia: float
+    day_180_uzonia: float
+    index: float
+    uzonia_date: date
+    days: int
 @app.post("/api/add_new_uzonia", tags=["Add New Uzonia"])
-async def add_new_uzonia_api(file_id: str, uzonia: float, day_7_uzonia: float, day_30_uzonia: float,
-                             day_90_uzonia: float, day_180_uzonia: float, index: float, uzonia_date: date, days: int):
+async def add_new_uzonia_api(data: AddUzoniaData, user_session_data = Depends(get_current_user)):
     logger.info("add_new_uzonia | uzonia_date=%s, file_id=%s, uzonia=%s, day_7_uzonia=%s, day_30_uzonia=%s, day_90_uzonia=%s, day_180_uzonia=%s, index=%s, days=%s",
-        uzonia_date, file_id, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days)
+        data.uzonia_date, data.file_id, data.uzonia, data.day_7_uzonia,
+                data.day_30_uzonia, data.day_90_uzonia, data.day_180_uzonia, data.index, data.days)
 
-    if not file_id or not uzonia or not day_7_uzonia or not day_30_uzonia or not day_90_uzonia or not day_180_uzonia or not index or not uzonia_date or not days:
+    if (not data.file_id or not data.uzonia or not data.day_7_uzonia or not data.day_30_uzonia or not data.day_90_uzonia
+            or not data.day_180_uzonia or not data.index or not data.uzonia_date or not data.days):
         logger.warning("add_new_uzonia | Missing parameters")
         raise HTTPException(status_code=400, detail="new_uzonia and new_uzonia_date parameters are required!")
 
@@ -1223,56 +1300,72 @@ async def add_new_uzonia_api(file_id: str, uzonia: float, day_7_uzonia: float, d
     for holiday in holidays_data:
         holidays_list.append(holiday['holiday_date'])
 
-    if uzonia_date in holidays_list:
-        logger.warning("add_new_uzonia | Conflict: uzonia_date=%s this is Holiday date", uzonia_date)
+    if data.uzonia_date in holidays_list:
+        logger.warning("add_new_uzonia | Conflict: uzonia_date=%s this is Holiday date", data.uzonia_date)
         raise HTTPException(status_code=404, detail="This is Holiday date!")
 
-    checking_data_existence = await get_single_uzonia_data(uzonia_date=uzonia_date)
+    checking_data_existence = await get_single_uzonia_data(uzonia_date=data.uzonia_date)
     if checking_data_existence:
-        logger.warning("add_new_uzonia | Duplicate: uzonia_date=%s already exists", uzonia_date)
+        logger.warning("add_new_uzonia | Duplicate: uzonia_date=%s already exists", data.zonia_date)
         raise HTTPException(status_code=404, detail="Such data already exists!")
 
     unique_job_id = str(uuid4().hex)
-    updated_row = await add_new_uzonia_data(unique_job_id=unique_job_id, file_id=file_id, uzonia=uzonia, day_7_uzonia=day_7_uzonia,
-                                            day_30_uzonia=day_30_uzonia, day_90_uzonia=day_90_uzonia,
-                                            day_180_uzonia=day_180_uzonia, index=index, uzonia_date=uzonia_date, days=days)
+    updated_row = await add_new_uzonia_data(unique_job_id=unique_job_id, file_id=data.file_id, uzonia=data.uzonia,
+                                            day_7_uzonia=data.day_7_uzonia,
+                                            day_30_uzonia=data.day_30_uzonia, day_90_uzonia=data.day_90_uzonia,
+                                            day_180_uzonia=data.day_180_uzonia, index=data.index,
+                                            uzonia_date=data.uzonia_date, days=data.days)
     if not updated_row:
-        logger.error("add_new_uzonia | DB insert failed for uzonia_date=%s", uzonia_date)
+        logger.error("add_new_uzonia | DB insert failed for uzonia_date=%s", data.uzonia_date)
         raise HTTPException(status_code=404, detail="Could not add the new uzonia to database!")
 
-    logger.info("add_new_uzonia | Successfully added uzonia_date=%s", uzonia_date)
+    logger.info("add_new_uzonia | Successfully added uzonia_date=%s", data.uzonia_date)
     return {"Status": 'Success', 'Data': 'Added successfully!'}
 
 
+
+class EditUzoniaData(BaseModel):
+    rate: float
+    uzonia: float
+    day_7_uzonia: float
+    day_30_uzonia: float
+    day_90_uzonia: float
+    day_180_uzonia: float
+    index: float
+    uzonia_date: date
+    days: int
 @app.put('/api/edit_uzonia_data', tags=["Edit Uzonia Status"])
-async def edit_uzonia_api(rate: float, uzonia: float, day_7_uzonia: float, day_30_uzonia: float,
-                          day_90_uzonia: float, day_180_uzonia: float, index: float, uzonia_date: date, days: int):
+async def edit_uzonia_api(data: EditUzoniaData, user_session_data = Depends(get_current_user)):
     logger.info(
         "edit_uzonia_data | uzonia_date=%s, rate=%s, uzonia=%s, day_7_uzonia=%s, day_30_uzonia=%s, day_90_uzonia=%s, day_180_uzonia=%s, index=%s",
-        uzonia_date, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index)
+        data.uzonia_date, data.rate, data.uzonia, data.day_7_uzonia, data.day_30_uzonia,
+        data.day_90_uzonia, data.day_180_uzonia, data.index)
 
-    if not rate or not uzonia or not day_7_uzonia or not day_30_uzonia or not day_90_uzonia or not day_180_uzonia or not index or not uzonia_date or not days:
+    if (not data.rate or not data.uzonia or not data.day_7_uzonia or not data.day_30_uzonia
+            or not data.day_90_uzonia or not data.day_180_uzonia or not data.index
+            or not data.uzonia_date or not data.days):
         logger.warning("edit_uzonia_data | Missing necessary data")
         raise HTTPException(status_code=400, detail="Uzonia datas are required")
 
-    checking_data_existence = await get_single_uzonia_data(uzonia_date=uzonia_date)
+    checking_data_existence = await get_single_uzonia_data(uzonia_date=data.uzonia_date)
     if not checking_data_existence:
-        logger.warning("edit_uzonia_data | Not found: uzonia_date=%s", uzonia_date)
+        logger.warning("edit_uzonia_data | Not found: uzonia_date=%s", data.uzonia_date)
         raise HTTPException(status_code=404, detail="Such data does not exist!")
 
-    updated_row = await edit_uzonia_data(rate=rate, uzonia=uzonia, day_7_uzonia=day_7_uzonia,
-                                         day_30_uzonia=day_30_uzonia, day_90_uzonia=day_90_uzonia,
-                                         day_180_uzonia=day_180_uzonia, index=index, uzonia_date=uzonia_date, days=days)
+    updated_row = await edit_uzonia_data(rate=data.rate, uzonia=data.uzonia, day_7_uzonia=data.day_7_uzonia,
+                                         day_30_uzonia=data.day_30_uzonia, day_90_uzonia=data.day_90_uzonia,
+                                         day_180_uzonia=data.day_180_uzonia, index=data.index,
+                                         uzonia_date=data.uzonia_date, days=data.days)
     if not updated_row:
-        logger.error("edit_uzonia_data | DB update failed for uzonia_date=%s", uzonia_date)
+        logger.error("edit_uzonia_data | DB update failed for uzonia_date=%s", data.uzonia_date)
         raise HTTPException(status_code=404, detail="Could not update the uzonia data!")
 
-    logger.info("edit_uzonia_data | Uzonia data updated for uzonia_date=%s", uzonia_date)
+    logger.info("edit_uzonia_data | Uzonia data updated for uzonia_date=%s", data.uzonia_date)
     return {"Status": 'Success', 'Data': 'Uzonia updated successfully!'}
 
 
 @app.delete("/api/delete_single_uzonia", tags=["Delete Single Uzonia"])
-async def delete_single_uzonia_api(uzonia_date: date):
+async def delete_single_uzonia_api(uzonia_date: date, user_session_data = Depends(get_current_user)):
     logger.info("delete_single_uzonia | uzonia_date=%s", uzonia_date)
     if not uzonia_date:
         logger.warning("delete_single_uzonia | Missing uzonia_date parameter")
@@ -1524,28 +1617,35 @@ async def download_uzonia_data_file_api(file_id: str, user_session_data = Depend
         await edit_action_status(unique_job_id=unique_job_id, status='failed')
         logger.warning("download_uzonia_data_file | Failed to download file %s: %s", output_file_path, e)
 
+
+
 # ----------------------------------------------------------------------------------------------------------------------
 # repo_data
 # ----------------------------------------------------------------------------------------------------------------------
 
 @app.get("/api/get_all_repo_data", tags=["Get All Uzonia"])
-async def get_all_repo_data_api():
+async def get_all_repo_data_api(user_session_data = Depends(get_current_user)):
+    user = user_session_data.get("user")
+    if not user:
+        logger.warning("get_all_repo_data | Unauthorized access attempt")
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     logger.info("get_all_repo_data | Fetching all repo data")
     all_repo_data = await get_all_repo_data()
 
     if len(all_repo_data) == 0:
-        return {"Status": 'Success', 'Data': all_repo_data}
+        return {"Status": 'Success', 'user': user, 'Data': all_repo_data}
 
     if not all_repo_data:
         logger.warning("get_all_repo_data | No repo data found in DB")
         raise HTTPException(status_code=404, detail="Such data does not exist!")
 
     logger.info("get_all_repo_data | Returned %d records", len(all_repo_data))
-    return {"Status": 'Success', 'Data': all_repo_data}
+    return {"Status": 'Success', 'user': user, 'Data': all_repo_data}
 
 
 @app.delete("/api/delete_repo_data", tags=["Delete Repo Data"])
-async def delete_repo_data_api(file_id: str):
+async def delete_repo_data_api(file_id: str, user_session_data = Depends(get_current_user)):
     logger.info("delete_repo_data | file_id=%s", file_id)
     if not file_id:
         logger.warning("delete_repo_data | Missing file_id parameter")
@@ -1571,23 +1671,28 @@ async def delete_repo_data_api(file_id: str):
 # ----------------------------------------------------------------------------------------------------------------------
 
 @app.get("/api/get_all_depo_data", tags=["Get All Depo Data"])
-async def get_all_depo_data_api():
+async def get_all_depo_data_api(user_session_data = Depends(get_current_user)):
+    user = user_session_data.get("user")
+    if not user:
+        logger.warning("get_all_repo_data | Unauthorized access attempt")
+        raise HTTPException(status_code=401, detail="Authentication required")
+
     logger.info("get_all_depo_data | Fetching all depo data")
     all_depo_data = await get_all_depo_data()
 
     if len(all_depo_data) == 0:
-        return {"Status": 'Success', 'Data': all_depo_data}
+        return {"Status": 'Success', 'user': user, 'Data': all_depo_data}
 
     if not all_depo_data:
         logger.warning("get_all_depo_data | No depo data found in DB")
         raise HTTPException(status_code=404, detail="Such data does not exist!")
 
     logger.info("get_all_depo_data | Returned %d records", len(all_depo_data))
-    return {"Status": 'Success', 'Data': all_depo_data}
+    return {"Status": 'Success', 'user': user, 'Data': all_depo_data}
 
 
 @app.delete("/api/delete_depo_data", tags=["Delete Depo Data"])
-async def delete_repo_data_api(file_id: str):
+async def delete_repo_data_api(file_id: str, user_session_data = Depends(get_current_user)):
     logger.info("delete_depo_data | file_id=%s", file_id)
     if not file_id:
         logger.warning("delete_depo_data | Missing file_id parameter")

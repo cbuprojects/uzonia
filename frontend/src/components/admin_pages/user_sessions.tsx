@@ -58,7 +58,7 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
 const TRANSLATIONS = {
   en: {
     bankName: 'The Central Bank of Uzbekistan',
-    deptSubtitle: 'Department of Monetary Operations • Session Management',
+    deptSubtitle: 'Department of Monetary Operations',
     pageTitle: 'Session Management',
     pageDesc: 'Monitor and manage all active user sessions — view details, edit status, and revoke access',
     back: 'Back',
@@ -144,7 +144,7 @@ const TRANSLATIONS = {
   },
   ru: {
     bankName: 'Центральный Банк Узбекистана',
-    deptSubtitle: 'Департамент Mонетарных Oпераций • Управление сессиями',
+    deptSubtitle: 'Департамент Mонетарных Oпераций',
     pageTitle: 'Управление сессиями',
     pageDesc: 'Мониторинг и управление всеми активными сессиями — просмотр, изменение статуса и отзыв доступа',
     back: 'Назад',
@@ -230,7 +230,7 @@ const TRANSLATIONS = {
   },
   uz_c: {
     bankName: 'Ўзбекистон Марказий Банки',
-    deptSubtitle: 'Монетар Oперациялар Департаменти • Сессияларни бошқариш',
+    deptSubtitle: 'Монетар Oперациялар Департаменти',
     pageTitle: 'Сессияларни бошқариш',
     pageDesc: 'Барча фойдаланувчи сессияларини кузатиш ва бошқариш — кўриш, ҳолатни ўзгартириш, кириш ҳуқуқини бекор қилиш',
     back: 'Орқага',
@@ -316,7 +316,7 @@ const TRANSLATIONS = {
   },
   uz_l: {
     bankName: "O'zbekiston Markaziy Banki",
-    deptSubtitle: 'Monetar Operatsiyalar Departamenti • Sessiyalarni boshqarish',
+    deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     pageTitle: "Sessiyalarni boshqarish",
     pageDesc: "Barcha foydalanuvchi sessiyalarini kuzatish va boshqarish — ko'rish, holatni o'zgartirish, kirishni bekor qilish",
     back: 'Orqaga',

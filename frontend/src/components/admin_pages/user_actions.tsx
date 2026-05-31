@@ -58,7 +58,7 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
 const TRANSLATIONS = {
   en: {
     bankName: 'The Central Bank of Uzbekistan',
-    deptSubtitle: 'Department of Monetary Operations • Action Log',
+    deptSubtitle: 'Department of Monetary Operations',
     pageTitle: 'User Actions Log',
     pageDesc: 'Read-only audit log of all user actions — filter by any column and delete individual records',
     back: 'Back',
@@ -140,7 +140,7 @@ const TRANSLATIONS = {
   },
   ru: {
     bankName: 'Центральный Банк Узбекистана',
-    deptSubtitle: 'Департамент Mонетарных Oпераций • Журнал действий',
+    deptSubtitle: 'Департамент Mонетарных Oпераций',
     pageTitle: 'Журнал действий пользователей',
     pageDesc: 'Журнал аудита всех действий пользователей — фильтрация по любому столбцу и удаление записей',
     back: 'Назад',
@@ -222,7 +222,7 @@ const TRANSLATIONS = {
   },
   uz_c: {
     bankName: 'Ўзбекистон Марказий Банки',
-    deptSubtitle: 'Монетар Oперациялар Департаменти • Ҳаракатлар журнали',
+    deptSubtitle: 'Монетар Oперациялар Департаменти',
     pageTitle: 'Фойдаланувчи ҳаракатлари журнали',
     pageDesc: 'Барча фойдаланувчи ҳаракатларининг аудит журнали — исталган устун бўйича фильтрлаш ва ёзувларни ўчириш',
     back: 'Орқага',
@@ -304,7 +304,7 @@ const TRANSLATIONS = {
   },
   uz_l: {
     bankName: "O'zbekiston Markaziy Banki",
-    deptSubtitle: 'Monetar Operatsiyalar Departamenti • Harakatlar jurnali',
+    deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     pageTitle: "Foydalanuvchi harakatlari jurnali",
     pageDesc: "Barcha foydalanuvchi harakatlarining audit jurnali — istalgan ustun bo'yicha filtrlash va yozuvlarni o'chirish",
     back: 'Orqaga',

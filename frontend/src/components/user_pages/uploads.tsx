@@ -57,9 +57,6 @@ const TRANSLATIONS = {
   en: {
     bankName: 'The Central Bank of Uzbekistan',
     deptSubtitle: 'Department of Monetary Operations',
-    pageTitle: 'Uzonia Upload History',
-    pageDesc: 'View and manage all Uzonia calculation uploads — download archives, track status, and delete records',
-    back: 'Back',
     totalUploads: 'Total Uploads',
     add_new_upload: 'Add New Upload',
     finished: 'Finished',
@@ -161,9 +158,6 @@ const TRANSLATIONS = {
   ru: {
     bankName: 'Центральный Банк Узбекистана',
     deptSubtitle: 'Департамент Mонетарных Oпераций',
-    pageTitle: 'История загрузок Uzonia',
-    pageDesc: 'Просмотр и управление всеми загрузками расчётов Uzonia — скачивание архивов, отслеживание статуса, удаление записей',
-    back: 'Назад',
     totalUploads: 'Всего загрузок',
     add_new_upload: 'Добавить новую загрузку',
     finished: 'Завершено',
@@ -265,9 +259,6 @@ const TRANSLATIONS = {
   uz_c: {
     bankName: 'Ўзбекистон Марказий Банки',
     deptSubtitle: 'Монетар Oперациялар Департаменти',
-    pageTitle: 'Uzonia юклашлар тарихи',
-    pageDesc: 'Барча Uzonia ҳисоб-китоб юклашларини кўриш ва бошқариш — архивларни юклаб олиш, ҳолатни кузатиш, ёзувларни ўчириш',
-    back: 'Орқага',
     totalUploads: 'Жами юклашлар',
     add_new_upload: 'Янги файл юклаш',
     finished: 'Тугалланган',
@@ -369,9 +360,6 @@ const TRANSLATIONS = {
   uz_l: {
     bankName: "O'zbekiston Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
-    pageTitle: 'Uzonia yuklamalar tarixi',
-    pageDesc: "Barcha Uzonia hisob-kitob yuklamalarini ko'rish va boshqarish — arxivlarni yuklab olish, holatni kuzatish, yozuvlarni o'chirish",
-    back: 'Orqaga',
     totalUploads: 'Jami yuklamalar',
     add_new_upload: 'Yangi fayl yuklash',
     finished: 'Tugallangan',
@@ -1255,23 +1243,6 @@ const UzoniaUploadsPage: React.FC = () => {
           </div>
         </div>
       </header>
-
-      {/* Hero bar */}
-      <div style={{ background: 'linear-gradient(135deg, #f1f5f9 0%, #e4eaf1 100%)', padding: isMobile ? '14px 16px' : '16px 32px', borderBottom: '1px solid #dde3e9', width: '100%', boxSizing: 'border-box' }}>
-        <div style={{ width: '100%', maxWidth: '1600px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '12px' : '0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#0a3b5c' }}>upload_file</span>
-            <div>
-              <h3 style={{ margin: 0, fontSize: isMobile ? '15px' : '16px', fontWeight: '500', color: '#0a3b5c' }}>{t.pageTitle}</h3>
-              <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#4a5c6a' }}>{t.pageDesc}</p>
-            </div>
-          </div>
-          <button onClick={() => window.history.back()} style={{ background: 'rgba(10,59,92,0.08)', border: '1px solid rgba(10,59,92,0.15)', color: '#0a3b5c', borderRadius: '10px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>arrow_back</span>
-            {t.back}
-          </button>
-        </div>
-      </div>
 
       {/* ════════════════════════════ MAIN ════════════════════════════ */}
       <main style={{ flex: 1, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: isMobile ? '20px 16px' : '32px', background: '#f8fafc', boxSizing: 'border-box' }}>
