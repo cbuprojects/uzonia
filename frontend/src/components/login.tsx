@@ -31,7 +31,7 @@ const translations = {
     accountDisabled: 'Your account is disabled. Contact your administrator.',
   },
   'uz-latin': {
-    bankName: "O'zbekiston Markaziy Banki",
+    bankName: "O'zbekiston Respublikasi Markaziy Banki",
     dept: 'Monetar Operatsiyalar Departamenti',
     welcomeBack: 'Xush kelibsiz',
     signInToContinue: 'Uzonia Tizimiga kirish',
@@ -55,7 +55,7 @@ const translations = {
     accountDisabled: "Hisobingiz bloklangan. Administratorga murojaat qiling.",
   },
   'uz-cyril': {
-    bankName: 'Ўзбекистон Марказий Банки',
+    bankName: 'Ўзбекистон Республикаси Марказий Банки',
     dept: 'Департамент Mонетарных Oпераций',
     welcomeBack: 'Хуш келибсиз',
     signInToContinue: 'Uzonia Тизимига кириш',
@@ -79,7 +79,7 @@ const translations = {
     accountDisabled: "Ҳисобингиз блокланган. Администраторга мурожаат қилинг.",
   },
   ru: {
-    bankName: 'Центральный Банк Узбекистана',
+    bankName: 'Центральный Банк Республики Узбекистан',
     dept: 'Департамент Mонетарных Oпераций',
     welcomeBack: 'С возвращением',
     signInToContinue: 'Войдите в систему Uzonia',

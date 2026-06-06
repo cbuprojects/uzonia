@@ -169,7 +169,7 @@ const TRANSLATIONS = {
     sessionExpired: 'Session expired. Please log in again.',
   },
   ru: {
-    bankName:    'Центральный Банк Узбекистана',
+    bankName:    'Центральный Банк Республики Узбекистан',
     deptSubtitle: 'Департамент Mонетарных Oпераций',
     calculations: 'Расчёты', uploads: 'Загрузки', repo: 'Репо',
     depo: 'Депо', data: 'Данные', holidays: 'Праздники',
@@ -250,7 +250,7 @@ const TRANSLATIONS = {
     sessionExpired: 'Сессия истекла. Пожалуйста, войдите снова.',
   },
   uz_c: {
-    bankName:    'Ўзбекистон Марказий Банки',
+    bankName:    'Ўзбекистон Республикаси Марказий Банки',
     deptSubtitle: 'Монетар Oперациялар Департаменти',
     calculations: 'Ҳисоб-китоб', uploads: 'Юклашлар', repo: 'Репо',
     depo: 'Депо', data: 'Маълумотлар', holidays: 'Байрамлар',
@@ -330,7 +330,7 @@ const TRANSLATIONS = {
     sessionExpired: 'Сессия муддати тугади. Илтимос, қайта киринг.',
   },
   uz_l: {
-    bankName:    "O'zbekiston Markaziy Banki",
+    bankName:    "O'zbekiston Respublikasi Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     calculations: "Hisob-kitob", uploads: 'Yuklamalar', repo: 'Repo',
     depo: 'Depo', data: "Ma'lumotlar", holidays: 'Bayramlar',

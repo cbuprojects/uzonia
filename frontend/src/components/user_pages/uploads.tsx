@@ -156,7 +156,7 @@ const TRANSLATIONS = {
     sessionExpired: 'Session expired. Please log in again.',
   },
   ru: {
-    bankName: 'Центральный Банк Узбекистана',
+    bankName: 'Центральный Банк Республики Узбекистан',
     deptSubtitle: 'Департамент Mонетарных Oпераций',
     totalUploads: 'Всего загрузок',
     add_new_upload: 'Добавить новую загрузку',
@@ -257,7 +257,7 @@ const TRANSLATIONS = {
     sessionExpired: 'Сессия истекла. Пожалуйста, войдите снова.',
   },
   uz_c: {
-    bankName: 'Ўзбекистон Марказий Банки',
+    bankName: 'Ўзбекистон Республикаси Марказий Банки',
     deptSubtitle: 'Монетар Oперациялар Департаменти',
     totalUploads: 'Жами юклашлар',
     add_new_upload: 'Янги файл юклаш',
@@ -358,7 +358,7 @@ const TRANSLATIONS = {
     sessionExpired: 'Сессия муддати тугади. Илтимос, қайта киринг.',
   },
   uz_l: {
-    bankName: "O'zbekiston Markaziy Banki",
+    bankName: "O'zbekiston Respublikasi Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     totalUploads: 'Jami yuklamalar',
     add_new_upload: 'Yangi fayl yuklash',

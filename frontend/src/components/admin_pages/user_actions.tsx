@@ -139,7 +139,7 @@ const TRANSLATIONS = {
     jobId: 'Job ID',
   },
   ru: {
-    bankName: 'Центральный Банк Узбекистана',
+    bankName: 'Центральный Банк Республики Узбекистан',
     deptSubtitle: 'Департамент Mонетарных Oпераций',
     pageTitle: 'Журнал действий пользователей',
     pageDesc: 'Журнал аудита всех действий пользователей — фильтрация по любому столбцу и удаление записей',
@@ -221,7 +221,7 @@ const TRANSLATIONS = {
     jobId: 'ID задачи',
   },
   uz_c: {
-    bankName: 'Ўзбекистон Марказий Банки',
+    bankName: 'Ўзбекистон Республикаси Марказий Банки',
     deptSubtitle: 'Монетар Oперациялар Департаменти',
     pageTitle: 'Фойдаланувчи ҳаракатлари журнали',
     pageDesc: 'Барча фойдаланувчи ҳаракатларининг аудит журнали — исталган устун бўйича фильтрлаш ва ёзувларни ўчириш',
@@ -303,7 +303,7 @@ const TRANSLATIONS = {
     jobId: 'Вазифа ID',
   },
   uz_l: {
-    bankName: "O'zbekiston Markaziy Banki",
+    bankName: "O'zbekiston Respublikasi Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     pageTitle: "Foydalanuvchi harakatlari jurnali",
     pageDesc: "Barcha foydalanuvchi harakatlarining audit jurnali — istalgan ustun bo'yicha filtrlash va yozuvlarni o'chirish",

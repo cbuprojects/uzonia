@@ -143,7 +143,7 @@ const TRANSLATIONS = {
     noChanges: 'No changes detected.',
   },
   ru: {
-    bankName: 'Центральный Банк Узбекистана',
+    bankName: 'Центральный Банк Республики Узбекистан',
     deptSubtitle: 'Департамент Mонетарных Oпераций',
     pageTitle: 'Управление сессиями',
     pageDesc: 'Мониторинг и управление всеми активными сессиями — просмотр, изменение статуса и отзыв доступа',
@@ -229,7 +229,7 @@ const TRANSLATIONS = {
     noChanges: 'Изменений нет.',
   },
   uz_c: {
-    bankName: 'Ўзбекистон Марказий Банки',
+    bankName: 'Ўзбекистон Республикаси Марказий Банки',
     deptSubtitle: 'Монетар Oперациялар Департаменти',
     pageTitle: 'Сессияларни бошқариш',
     pageDesc: 'Барча фойдаланувчи сессияларини кузатиш ва бошқариш — кўриш, ҳолатни ўзгартириш, кириш ҳуқуқини бекор қилиш',
@@ -315,7 +315,7 @@ const TRANSLATIONS = {
     noChanges: 'Ўзгаришлар йўқ.',
   },
   uz_l: {
-    bankName: "O'zbekiston Markaziy Banki",
+    bankName: "O'zbekiston Respublikasi Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     pageTitle: "Sessiyalarni boshqarish",
     pageDesc: "Barcha foydalanuvchi sessiyalarini kuzatish va boshqarish — ko'rish, holatni o'zgartirish, kirishni bekor qilish",
