@@ -1,7 +1,7 @@
 <div align="center">
 
-# 📈 Uzonia Calculation & Reporting System
 
+# <a href="https://cbu.uz/en/" target="_blank"> <img src="frontend/src/assets/bank.png" width="40"/> </a> Uzonia Calculation & Reporting System <a href="https://cbu.uz/en/monetary_policy/key_rate/" target="_blank"> <img src="frontend/src/assets/growth.png" width="40"/> </a>
 ## FastAPI • PostgreSQL • Rate Analytics • Excel Automation • Embedded Chart Generation
 
 
