@@ -338,7 +338,7 @@ async def add_user_api(data: UserData, user_session_data = Depends(get_current_u
         raise HTTPException(403, "Language does not exist!")
 
     user_id = secrets.token_hex(64)
-    hmac_result = hmac.new(user_id.encode(), psd.encode(), hashlib.sha256).hexdigest()
+    hmac_result = hmac.new(user_id.encode(), data.password.encode(), hashlib.sha256).hexdigest()
     password_hash = pwd_context.hash(hmac_result)
 
     user_session = await get_session(user_session_data['session_id'])
