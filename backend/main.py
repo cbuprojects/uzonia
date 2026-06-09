@@ -71,9 +71,14 @@ logger = logging.getLogger("cbu_api")
 
 app = FastAPI(title='CBU Incoterm Data Processing APIs', docs_url='/', redoc_url=None)
 
+# origins = [
+#     "http://localhost:5173",
+#     "http://127.0.0.1:5173",
+# ]
+
 origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
+    "http://10.1.209.135:4837",
+    "http://localhost:4837",
 ]
 
 app.add_middleware(
@@ -129,7 +134,7 @@ async def startup_event():
     else:
         logger.info('📋 Holiday data is NOT added')
 
-    # await create_admin_user()
+    await create_admin_user()
 
 
     logger.info("✅ Startup complete: DB pool initialized")
