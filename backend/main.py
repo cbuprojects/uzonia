@@ -122,19 +122,19 @@ async def log_requests(request: Request, call_next):
 async def startup_event():
     logger.info("🚀 Starting CBU API…")
     await init_db_pool()
-    result = await add_new_uzonia_data_to_the_db()
-    if result:
-        logger.info('🆕 Data is added')
-    else:
-        logger.info('📋 Data is NOT added')
+    # result = await add_new_uzonia_data_to_the_db()
+    # if result:
+    #     logger.info('🆕 Data is added')
+    # else:
+    #     logger.info('📋 Data is NOT added')
 
-    result = await add_new_holiday_data_to_the_db()
-    if result:
-        logger.info('🆕 Holiday data is added')
-    else:
-        logger.info('📋 Holiday data is NOT added')
+    # result = await add_new_holiday_data_to_the_db()
+    # if result:
+    #     logger.info('🆕 Holiday data is added')
+    # else:
+    #     logger.info('📋 Holiday data is NOT added')
 
-    await create_admin_user()
+    # await create_admin_user()
 
 
     logger.info("✅ Startup complete: DB pool initialized")
