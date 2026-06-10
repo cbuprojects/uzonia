@@ -632,14 +632,15 @@ const CalculationsPage: React.FC = () => {
       const res = await fetch(`${API_BASE_URL}/api/add_new_uzonia_calculation`, {
         method: 'POST', headers: { Authorization: authHeader() }, body: fd,
       });
-      if (res.status===401||res.status===403) {
-        localStorage.removeItem('session_id'); sessionStorage.setItem('session_expired','1');
-        window.location.replace('/login'); return;
-      }
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
         throw new Error(err.detail || 'Calculation failed.');
       }
+      if (res.status===401||res.status===403) {
+        localStorage.removeItem('session_id'); sessionStorage.setItem('session_expired','1');
+        window.location.replace('/login'); return;
+      }
+
       const data: CalcResult = await res.json();
       stopProgress(true); setResult(data); showToast(t.success, 'success');
     } catch (err: any) {

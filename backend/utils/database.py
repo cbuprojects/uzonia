@@ -54,6 +54,7 @@ async def init_db_pool() -> None:
                 id                        SERIAL PRIMARY KEY,
                 unique_job_id             TEXT NOT NULL UNIQUE,
                 file_id                   TEXT NOT NULL,
+                day_type                  TEXT NOT NULL,
                 rate                      NUMERIC(18, 4) NOT NULL,
                 uzonia                    NUMERIC(18, 4) NOT NULL,
                 day_7_uzonia              NUMERIC(18, 4),
@@ -676,7 +677,8 @@ async def check_existence_uzonia_data() -> bool:
         return False
 
 
-async def add_new_uzonia_data(unique_job_id: str, file_id: str, rate: float,
+async def add_new_uzonia_data(unique_job_id: str, file_id: str, day_type: str,
+                              rate: float,
                               uzonia: float,  day_7_uzonia: float,
                               day_30_uzonia: float, day_90_uzonia: float,
                               day_180_uzonia: float, index: float,
@@ -686,11 +688,11 @@ async def add_new_uzonia_data(unique_job_id: str, file_id: str, rate: float,
         async with pool.acquire() as conn:
             await conn.execute(
                 """
-                INSERT INTO uzonia_data (unique_job_id, file_id, rate, uzonia, day_7_uzonia, day_30_uzonia,
+                INSERT INTO uzonia_data (unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia,
                                          day_90_uzonia, day_180_uzonia, index, uzonia_date, days)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 """,
-                unique_job_id, file_id, rate, uzonia, day_7_uzonia, day_30_uzonia,
+                unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia,
                 day_90_uzonia, day_180_uzonia, index, uzonia_date, days
             )
         return True
@@ -704,14 +706,15 @@ async def get_single_uzonia_data(uzonia_date: date) -> Optional[Dict]:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                SELECT unique_job_id, file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
+                SELECT unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
                 FROM uzonia_data
                 WHERE uzonia_date = $1
                 """,
                 uzonia_date
             )
         if row:
-            return {'unique_job_id': row['unique_job_id'], 'file_id': row['file_id'], 'rate': row['rate'], 'uzonia': float(row['uzonia']),
+            return {'unique_job_id': row['unique_job_id'], 'file_id': row['file_id'], 'day_type': row['day_type'],
+                    'rate': row['rate'], 'uzonia': float(row['uzonia']),
                     'day_7_uzonia': float(row['day_7_uzonia']), 'day_30_uzonia': float(row['day_30_uzonia']),
                     'day_90_uzonia': float(row['day_90_uzonia']), 'day_180_uzonia': float(row['day_180_uzonia']),
                     'index': float(row['index']), 'uzonia_date': row['uzonia_date'], 'days': row['days']}
@@ -738,7 +741,7 @@ async def delete_uzonia_data(uzonia_date: date) -> bool:
         return False
 
 
-async def edit_uzonia_data(rate: float, uzonia: float, day_7_uzonia: float, day_30_uzonia: float, day_90_uzonia: float,
+async def edit_uzonia_data(day_type: str, rate: float, uzonia: float, day_7_uzonia: float, day_30_uzonia: float, day_90_uzonia: float,
                            day_180_uzonia: float, index: float, uzonia_date: date, days: int) -> bool:
     """Edit uzonia data from database."""
     try:
@@ -746,10 +749,10 @@ async def edit_uzonia_data(rate: float, uzonia: float, day_7_uzonia: float, day_
             await conn.execute(
                 """
                 UPDATE uzonia_data
-                SET rate = $1, uzonia = $2, day_7_uzonia = $3, day_30_uzonia = $4,
-                    day_90_uzonia = $5, day_180_uzonia = $6, index = $7, days = $8
-                WHERE uzonia_date = $9
-                """, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days, uzonia_date
+                SET day_type = $1, rate = $2, uzonia = $3, day_7_uzonia = $4, day_30_uzonia = $5,
+                    day_90_uzonia = $6, day_180_uzonia = $7, index = $8, days = $9
+                WHERE uzonia_date = $10
+                """, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days, uzonia_date
             )
 
         return True
@@ -767,6 +770,7 @@ async def get_all_uzonia_data() -> List[Dict]:
                 SELECT
                     ud.unique_job_id,
                     ud.file_id,
+                    ud.day_type,
                     ud.rate,
                     ud.uzonia,
                     ud.day_7_uzonia,
@@ -796,6 +800,7 @@ async def get_all_uzonia_data() -> List[Dict]:
             if rows:
                 return [{'unique_job_id': row['unique_job_id'],
                          'file_id': row['file_id'],
+                         'day_type': row['day_type'],
                          'rate': row['rate'],
                          'uzonia': row['uzonia'],
                          'day_7_uzonia': row['day_7_uzonia'],
@@ -822,7 +827,7 @@ async def get_filtered_uzonia_data(till_date: date) -> List[Dict]:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT unique_job_id, file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days, created_at
+                SELECT unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days, created_at
                 FROM uzonia_data
                 WHERE uzonia_date <= $1
                 ORDER BY uzonia_date DESC
@@ -831,6 +836,7 @@ async def get_filtered_uzonia_data(till_date: date) -> List[Dict]:
             if rows:
                 return [{'unique_job_id': row['unique_job_id'],
                          'file_id': row['file_id'],
+                         'day_type': row['day_type'],
                          'rate': row['rate'],
                          'uzonia': row['uzonia'],
                          'day_7_uzonia': row['day_7_uzonia'],
@@ -962,7 +968,7 @@ async def get_latest_uzonia_data(cb_date: date) -> Dict:
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                SELECT unique_job_id, file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
+                SELECT unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
                 FROM uzonia_data
                 WHERE uzonia_date < $1
                 ORDER BY uzonia_date DESC
@@ -971,6 +977,7 @@ async def get_latest_uzonia_data(cb_date: date) -> Dict:
         if row:
             return {'unique_job_id': row['unique_job_id'],
                     'file_id': row['file_id'],
+                    'day_type': row['day_type'],
                     'rate': row['rate'],
                     'uzonia': float(row['uzonia']),
                     'day_7_uzonia': float(row['day_7_uzonia']),
@@ -993,7 +1000,7 @@ async def get_year_first_uzonia_data(year_first_date: date):
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                SELECT unique_job_id, file_id, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
+                SELECT unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
                 FROM uzonia_data
                 WHERE uzonia_date >= $1
                 ORDER BY uzonia_date ASC
@@ -1002,6 +1009,7 @@ async def get_year_first_uzonia_data(year_first_date: date):
         if row:
             return {'unique_job_id': row['unique_job_id'],
                     'file_id': row['file_id'],
+                    'day_type': row['day_type'],
                     'rate': row['rate'],
                     'uzonia': float(row['uzonia']),
                     'day_7_uzonia': float(row['day_7_uzonia']),

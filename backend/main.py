@@ -41,7 +41,7 @@ from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data
                             edit_user_password, delete_user,
                             get_all_sessions_data, edit_session_status, delete_session,
                             add_action_data, get_all_actions_data, edit_action_status, delete_single_action, get_single_action_data)
-from utils.add_data import add_new_uzonia_data_to_the_db, add_new_holiday_data_to_the_db
+from utils.add_data import add_all_uzonia_data_to_the_db, add_new_holiday_data_to_the_db
 from utils.calculations import calculate_day_uzonia, calculate_cb_rate
 from utils.draw_graph import draw_graph_data
 from utils.draw_table import draw_table_data
@@ -122,7 +122,7 @@ async def log_requests(request: Request, call_next):
 async def startup_event():
     logger.info("🚀 Starting CBU API…")
     await init_db_pool()
-    result = await add_new_uzonia_data_to_the_db()
+    result = await add_all_uzonia_data_to_the_db()
     if result:
         logger.info('🆕 Data is added')
     else:
@@ -665,7 +665,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             cb_rate = float(cb_rate)
             cb_deposit = float(cb_deposit.replace(" ", ""))
         except Exception as e:
-            raise HTTPException(status_code=401, detail="Wrong CB Input data!")
+            raise HTTPException(status_code=404, detail="Wrong CB Input data!")
 
         try:
             repo_n_file_content = await repo_n_file.read()
@@ -679,7 +679,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             if missing_columns:
                 raise HTTPException(status_code=400, detail=f"Missing columns: {missing_columns}")
         except Exception as e:
-            raise HTTPException(status_code=401, detail="❌ Error with the repo N file!")
+            raise HTTPException(status_code=404, detail="❌ Error with the repo N file!")
 
         try:
             repo_m_file_content = await repo_m_file.read()
@@ -693,7 +693,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             if missing_columns:
                 raise HTTPException(status_code=400, detail=f"Missing columns: {missing_columns}")
         except Exception as e:
-            raise HTTPException(status_code=401, detail="❌ Error with the repo M file!")
+            raise HTTPException(status_code=404, detail="❌ Error with the repo M file!")
 
         try:
             deposit_file_content = await deposit_file.read()
@@ -706,11 +706,11 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             if missing_columns:
                 raise HTTPException(status_code=400, detail=f"Missing columns: {missing_columns}")
         except Exception as e:
-            raise HTTPException(status_code=403, detail="❌ Error with the Deposit file!")
+            raise HTTPException(status_code=404, detail="❌ Error with the Deposit file!")
 
         check_existence = await get_single_uzonia_data(uzonia_date=cb_date)
         if check_existence:
-            raise HTTPException(status_code=403, detail="Such data already exists!")
+            raise HTTPException(status_code=422, detail="Such data already exists!")
 
         holidays_data = await get_all_holiday_data()
         holidays_list = []
@@ -718,7 +718,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             holidays_list.append(holiday['holiday_date'])
 
         if cb_date in holidays_list:
-            raise HTTPException(status_code=404, detail="This is holiday date!")
+            raise HTTPException(status_code=400, detail="This is holiday date!")
 
         file_id = uuid4().hex[:12]
         unique_job_id = str(uuid4().hex)
@@ -1013,12 +1013,11 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         print('n_day_number:', n_day_number)
 
         uzonia_index = latest_index * (1 + ((day_uzonia / 100 ) * (n_day_number / 365)))
-        # uzonia_index = latest_index * (1 + latest_uzonia_data['uzonia'] * n_day_number / 365)
         print('uzonia_index:', uzonia_index)
         final_uzonia_data_dict['index'] = uzonia_index
         final_uzonia_data_dict['uzonia_date'] = cb_date
 
-        days_n_periods = {7:6, 30:29, 90:89, 180:179}
+        days_n_periods = {7:8, 30:31, 90:91, 180:181}
         # for period_key, latest_n_value in days_n_periods.items():
         #     # 1. Start with the 'un-synced' days (the gap between last data and now)
         #     # Assuming 'current_rate' is the rate for the gap period
@@ -1039,7 +1038,9 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         #     final_uzonia_data_dict[f'day_{period_key}_uzonia'] = n_day_final_value
         for period_key, latest_n_value in days_n_periods.items():
             nth_index_value = await get_nth_uzonia_data(nth_value=latest_n_value)
-            nth_day_final_value = ((uzonia_index / nth_index_value) - 1) * 365 / period_key
+            print(f'nth_index_value: {nth_index_value}', type(nth_index_value))
+            print(f'uzonia_index: {uzonia_index}', type(uzonia_index))
+            nth_day_final_value = ((uzonia_index / nth_index_value) - 1) * 365 / period_key * 100
             final_uzonia_data_dict[f'day_{period_key}_uzonia'] = nth_day_final_value
 
 
@@ -1083,8 +1084,8 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             'index': final_uzonia_data_dict['index'],
         }
     except Exception as e:
-
         logger.info("add_new_uzonia_calculation | error=%s", e)
+        raise HTTPException(status_code=401, detail="Could not calculate uzonia!")
 
 
 @app.get("/api/get_calculation_page", tags=["Calculation page"])
@@ -1306,6 +1307,8 @@ async def get_all_uzonia_data_api(user_session_data = Depends(get_current_user))
 
 class AddUzoniaData(BaseModel):
     file_id: str
+    day_type: str
+    rate: float
     uzonia: float
     day_7_uzonia: float
     day_30_uzonia: float
@@ -1347,7 +1350,10 @@ async def add_new_uzonia_api(data: AddUzoniaData, user_session_data = Depends(ge
         raise HTTPException(status_code=404, detail="Such data already exists!")
 
     unique_job_id = str(uuid4().hex)
-    updated_row = await add_new_uzonia_data(unique_job_id=unique_job_id, file_id=data.file_id, uzonia=data.uzonia,
+    updated_row = await add_new_uzonia_data(unique_job_id=unique_job_id, file_id=data.file_id,
+                                            day_type=data.day_type,
+                                            rate=data.rate,
+                                            uzonia=data.uzonia,
                                             day_7_uzonia=data.day_7_uzonia,
                                             day_30_uzonia=data.day_30_uzonia, day_90_uzonia=data.day_90_uzonia,
                                             day_180_uzonia=data.day_180_uzonia, index=data.index,
@@ -1370,8 +1376,8 @@ async def add_new_uzonia_api(data: AddUzoniaData, user_session_data = Depends(ge
     return {"Status": 'Success', 'Data': 'Added successfully!'}
 
 
-
 class EditUzoniaData(BaseModel):
+    day_type: str
     rate: float
     uzonia: float
     day_7_uzonia: float
@@ -1407,7 +1413,7 @@ async def edit_uzonia_api(data: EditUzoniaData, user_session_data = Depends(get_
         logger.warning("edit_uzonia_data | Not found: uzonia_date=%s", data.uzonia_date)
         raise HTTPException(status_code=404, detail="Such data does not exist!")
 
-    updated_row = await edit_uzonia_data(rate=data.rate, uzonia=data.uzonia, day_7_uzonia=data.day_7_uzonia,
+    updated_row = await edit_uzonia_data(day_type=data.day_type, rate=data.rate, uzonia=data.uzonia, day_7_uzonia=data.day_7_uzonia,
                                          day_30_uzonia=data.day_30_uzonia, day_90_uzonia=data.day_90_uzonia,
                                          day_180_uzonia=data.day_180_uzonia, index=data.index,
                                          uzonia_date=data.uzonia_date, days=data.days)
