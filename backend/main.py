@@ -720,6 +720,11 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         if cb_date in holidays_list:
             raise HTTPException(status_code=400, detail="This is holiday date!")
 
+        if cb_date.weekday() >= 5:
+            day_type='Day-off'
+        else:
+            day_type='Working day'
+
         file_id = uuid4().hex[:12]
         unique_job_id = str(uuid4().hex)
 
@@ -1017,7 +1022,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         final_uzonia_data_dict['index'] = uzonia_index
         final_uzonia_data_dict['uzonia_date'] = cb_date
 
-        days_n_periods = {7:8, 30:31, 90:91, 180:181}
+        days_n_periods = {7:7, 30:30, 90:90, 180:180}
         # for period_key, latest_n_value in days_n_periods.items():
         #     # 1. Start with the 'un-synced' days (the gap between last data and now)
         #     # Assuming 'current_rate' is the rate for the gap period
@@ -1050,6 +1055,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         added_new_uzonia = await add_new_uzonia_data(unique_job_id=unique_job_id,
                                   file_id=file_id,
                                   rate=cb_rate,
+                                  day_type=day_type,
                                   uzonia=final_uzonia_data_dict['day_uzonia'],
                                   day_7_uzonia=final_uzonia_data_dict['day_7_uzonia'],
                                   day_30_uzonia=final_uzonia_data_dict['day_30_uzonia'],
