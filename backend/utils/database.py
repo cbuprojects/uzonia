@@ -3,7 +3,7 @@ import json
 import os
 from zoneinfo import ZoneInfo
 from datetime import datetime, date
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any, Coroutine
 from dotenv import load_dotenv
 
 
@@ -866,6 +866,28 @@ async def get_latest_n_uzonia(latest_n: int) -> list:
     except Exception as e:
         print(f"Error fetching UZONIA data: {e}")
         return []
+
+
+async def get_nth_uzonia_data(nth_value: int) -> float | None:
+    """Get uzonia data for nth day."""
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow("""
+                SELECT
+                  LEAD(index, $1) OVER (ORDER BY uzonia_date DESC) AS nth_ago_index
+                FROM uzonia_data
+                ORDER BY uzonia_date DESC
+                LIMIT 1;
+            """, nth_value)
+            if row and row['nth_ago_index'] is not None:
+                row = float(row['nth_ago_index'])
+            else:
+                row = []
+            return row
+    except Exception as e:
+        print(f"Error fetching UZONIA data: {e}")
+        return None
+
 
 
 async def get_date_filtered_rate_uzonia(from_date: date, till_date: date) -> List[Dict]:
