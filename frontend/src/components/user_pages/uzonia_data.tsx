@@ -66,6 +66,13 @@ const NAV_PAGES = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Day type options
+// ─────────────────────────────────────────────────────────────────────────────
+
+const DAY_TYPES = ['Working day', 'Day-off'] as const;
+type DayType = typeof DAY_TYPES[number];
+
+// ─────────────────────────────────────────────────────────────────────────────
 // i18n
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -86,7 +93,7 @@ const TRANSLATIONS = {
     colIndex:      '#',
     colDate:       'DATE',
     colDays:       'DAYS',
-    colFileId:     'FILE ID',
+    colDayType:    'DAY TYPE',
     colRate:       'RATE',
     colUzonia:     'UZONIA',
     col7Day:       '7-DAY',
@@ -102,7 +109,7 @@ const TRANSLATIONS = {
     // filters
     phDate:        'Date…',
     phDays:        'Days…',
-    phFileId:      'File ID…',
+    phDayType:     'All types',
     phRate:        'Rate…',
     phUzonia:      'Uzonia…',
     ph7Day:        '7-Day…',
@@ -134,7 +141,7 @@ const TRANSLATIONS = {
     addTitle:      'Add Uzonia Record',
     uzoniaDate:    'Uzonia Date',
     days:          'Days',
-    fileId:        'File ID',
+    dayTypeLabel:  'Day Type',
     rate:          'Rate',
     uzoniaLabel:   'Uzonia (Overnight)',
     day7:          '7-Day Uzonia',
@@ -150,8 +157,6 @@ const TRANSLATIONS = {
     allRequired:   'All fields are required.',
     // edit modal
     editTitle:      'Edit Uzonia Record',
-    readOnlyDate:   'Uzonia Date (read-only)',
-    readOnlyFileId: 'File ID (read-only)',
     createdAtLabel: 'Created At',
     saving:         'Saving…',
     saveChanges:    'Save Changes',
@@ -196,6 +201,9 @@ const TRANSLATIONS = {
     privacyPolicy: 'Privacy Policy',
     termsOfUse:    'Terms of Use',
     sessionExpired: 'Session expired. Please log in again.',
+    // day types
+    workingDay:    'Working day',
+    dayOff:        'Day-off',
   },
   ru: {
     bankName:     'Центральный Банк Республики Узбекистан',
@@ -211,7 +219,7 @@ const TRANSLATIONS = {
     colIndex:      '#',
     colDate:       'ДАТА',
     colDays:       'ДНЕЙ',
-    colFileId:     'ФАЙЛ ID',
+    colDayType:    'ТИП ДНЯ',
     colRate:       'СТАВКА',
     colUzonia:     'УЗОНИЯ',
     col7Day:       '7 ДНЕЙ',
@@ -226,7 +234,7 @@ const TRANSLATIONS = {
     colActions:    'ДЕЙСТВИЯ',
     phDate:        'Дата…',
     phDays:        'Дней…',
-    phFileId:      'Файл ID…',
+    phDayType:     'Все типы',
     phRate:        'Ставка…',
     phUzonia:      'Узония…',
     ph7Day:        '7 дней…',
@@ -255,7 +263,7 @@ const TRANSLATIONS = {
     addTitle:      'Добавить запись УЗОНИЯ',
     uzoniaDate:    'Дата УЗОНИЯ',
     days:          'Дней',
-    fileId:        'Файл ID',
+    dayTypeLabel:  'Тип дня',
     rate:          'Ставка',
     uzoniaLabel:   'Узония (овернайт)',
     day7:          '7-дневная Узония',
@@ -270,8 +278,6 @@ const TRANSLATIONS = {
     addFailed:     'Ошибка добавления записи.',
     allRequired:   'Все поля обязательны.',
     editTitle:      'Редактировать запись УЗОНИЯ',
-    readOnlyDate:   'Дата (только чтение)',
-    readOnlyFileId: 'Файл ID (только чтение)',
     createdAtLabel: 'Создан',
     saving:         'Сохранение…',
     saveChanges:    'Сохранить изменения',
@@ -312,6 +318,8 @@ const TRANSLATIONS = {
     privacyPolicy: 'Политика конфиденциальности',
     termsOfUse:    'Условия использования',
     sessionExpired: 'Сессия истекла. Пожалуйста, войдите снова.',
+    workingDay:    'Рабочий день',
+    dayOff:        'Выходной',
   },
   uz_c: {
     bankName:     'Ўзбекистон Республикаси Марказий Банки',
@@ -327,7 +335,7 @@ const TRANSLATIONS = {
     colIndex:      '#',
     colDate:       'САНА',
     colDays:       'КУН',
-    colFileId:     'ФАЙЛ ID',
+    colDayType:    'КУН ТУРИ',
     colRate:       'СТАВКА',
     colUzonia:     'УЗОНИЯ',
     col7Day:       '7 КУН',
@@ -342,7 +350,7 @@ const TRANSLATIONS = {
     colActions:    'АМАЛЛАР',
     phDate:        'Сана…',
     phDays:        'Кун…',
-    phFileId:      'Файл ID…',
+    phDayType:     'Барча турлар',
     phRate:        'Ставка…',
     phUzonia:      'Узония…',
     ph7Day:        '7 кун…',
@@ -371,7 +379,7 @@ const TRANSLATIONS = {
     addTitle:      'УЗОНИЯ Ёзуви Қўшиш',
     uzoniaDate:    'УЗОНИЯ санаси',
     days:          'Кун',
-    fileId:        'Файл ID',
+    dayTypeLabel:  'Кун тури',
     rate:          'Ставка',
     uzoniaLabel:   'Узония (Овернайт)',
     day7:          '7 кунлик Узония',
@@ -386,8 +394,6 @@ const TRANSLATIONS = {
     addFailed:     'Ёзув қўшишда хато.',
     allRequired:   'Барча майдонлар тўлдирилиши шарт.',
     editTitle:      'УЗОНИЯ Ёзувини Таҳрирлаш',
-    readOnlyDate:   'Сана (фақат ўқиш)',
-    readOnlyFileId: 'Файл ID (фақат ўқиш)',
     createdAtLabel: 'Яратилган',
     saving:         'Сақланмоқда…',
     saveChanges:    'Ўзгаришларни сақлаш',
@@ -428,6 +434,8 @@ const TRANSLATIONS = {
     privacyPolicy: 'Махфийлик сиёсати',
     termsOfUse:    'Фойдаланиш шартлари',
     sessionExpired: 'Сессия муддати тугади. Илтимос, қайта киринг.',
+    workingDay:    'Иш куни',
+    dayOff:        'Дам олиш куни',
   },
   uz_l: {
     bankName:     "O'zbekiston Respublikasi Markaziy Banki",
@@ -443,7 +451,7 @@ const TRANSLATIONS = {
     colIndex:      '#',
     colDate:       'SANA',
     colDays:       'KUN',
-    colFileId:     'FAYL ID',
+    colDayType:    'KUN TURI',
     colRate:       'STAVKA',
     colUzonia:     'UZONIA',
     col7Day:       '7 KUN',
@@ -458,7 +466,7 @@ const TRANSLATIONS = {
     colActions:    'AMALLAR',
     phDate:        'Sana…',
     phDays:        'Kun…',
-    phFileId:      'Fayl ID…',
+    phDayType:     'Barcha turlar',
     phRate:        'Stavka…',
     phUzonia:      'Uzonia…',
     ph7Day:        '7 kun…',
@@ -487,7 +495,7 @@ const TRANSLATIONS = {
     addTitle:      "UZONIA Yozuvi Qo'shish",
     uzoniaDate:    'UZONIA sanasi',
     days:          'Kun',
-    fileId:        'Fayl ID',
+    dayTypeLabel:  'Kun turi',
     rate:          'Stavka',
     uzoniaLabel:   'Uzonia (Overnight)',
     day7:          '7 kunlik Uzonia',
@@ -502,8 +510,6 @@ const TRANSLATIONS = {
     addFailed:     "Yozuv qo'shishda xato.",
     allRequired:   "Barcha maydonlar to'ldirilishi shart.",
     editTitle:      'UZONIA Yozuvini Tahrirlash',
-    readOnlyDate:   'Sana (faqat o\'qish)',
-    readOnlyFileId: 'Fayl ID (faqat o\'qish)',
     createdAtLabel: 'Yaratilgan',
     saving:         'Saqlanmoqda…',
     saveChanges:    "O'zgarishlarni saqlash",
@@ -544,6 +550,8 @@ const TRANSLATIONS = {
     privacyPolicy: 'Maxfiylik siyosati',
     termsOfUse:    'Foydalanish shartlari',
     sessionExpired: 'Sessiya muddati tugadi. Iltimos, qayta kiring.',
+    workingDay:    'Ish kuni',
+    dayOff:        'Dam olish kuni',
   },
 };
 
@@ -558,6 +566,7 @@ const LANG_NAMES:  Record<LangKey, string> = { en: 'English', ru: 'Русски�
 interface UzoniaRow {
   unique_job_id:  string;
   file_id:        string;
+  day_type:       string;
   rate:           number;
   uzonia:         number;
   day_7_uzonia:   number;
@@ -574,13 +583,13 @@ interface UzoniaRow {
 }
 
 interface AddForm {
-  file_id: string; uzonia_date: string; days: string;
+  day_type: DayType; uzonia_date: string; days: string;
   rate: string; uzonia: string; day_7_uzonia: string; day_30_uzonia: string;
   day_90_uzonia: string; day_180_uzonia: string; index: string;
 }
 
 interface EditForm {
-  rate: string; uzonia: string; day_7_uzonia: string; day_30_uzonia: string;
+  day_type: DayType; rate: string; uzonia: string; day_7_uzonia: string; day_30_uzonia: string;
   day_90_uzonia: string; day_180_uzonia: string; index: string; days: string;
 }
 
@@ -634,6 +643,27 @@ const DaysBadge = ({ value }: { value: number }) => (
   </span>
 );
 
+// Day type badge
+const DayTypeBadge = ({ value }: { value: string }) => {
+  const isWorking = value === 'Working day';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      fontSize: '11px', fontWeight: '600',
+      background: isWorking ? '#f0fdf4' : '#fef3c7',
+      color: isWorking ? '#15803d' : '#92400e',
+      padding: '3px 8px', borderRadius: '20px',
+      border: `1px solid ${isWorking ? '#bbf7d0' : '#fde68a'}`,
+      whiteSpace: 'nowrap',
+    }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '11px' }}>
+        {isWorking ? 'work' : 'weekend'}
+      </span>
+      {value || '—'}
+    </span>
+  );
+};
+
 // Column-level filter input with icon
 const ColFilter = ({
   value, onChange, placeholder, icon, flex, numeric,
@@ -665,12 +695,42 @@ const ColFilter = ({
   );
 };
 
+// Day type dropdown filter
+const DayTypeFilter = ({
+  value, onChange, placeholder,
+}: {
+  value: string; onChange: (v: string) => void; placeholder: string;
+}) => (
+  <div style={{ position: 'relative', flex: '0 0 130px', minWidth: '120px' }}>
+    <span className="material-symbols-outlined" style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px', pointerEvents: 'none', zIndex: 1 }}>calendar_view_day</span>
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        width: '100%', padding: '7px 24px 7px 24px', fontSize: '11px',
+        background: value ? '#eef7ff' : '#f8fafc',
+        color: value ? '#0a3b5c' : '#94a3b8',
+        border: value ? '1px solid #93c5fd' : '1px solid #e2e8f0',
+        borderRadius: '8px', outline: 'none', boxSizing: 'border-box',
+        cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none',
+        fontWeight: value ? '600' : '400',
+      }}
+    >
+      <option value="">{placeholder}</option>
+      {DAY_TYPES.map(dt => (
+        <option key={dt} value={dt}>{dt}</option>
+      ))}
+    </select>
+    <span className="material-symbols-outlined" style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px', pointerEvents: 'none' }}>expand_more</span>
+  </div>
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const EMPTY_ADD: AddForm = { file_id: '', uzonia_date: '', days: '', rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '' };
-const EMPTY_EDIT: EditForm = { rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '', days: '' };
+const EMPTY_ADD: AddForm = { day_type: 'Working day', uzonia_date: '', days: '', rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '' };
+const EMPTY_EDIT: EditForm = { day_type: 'Working day', rate: '', uzonia: '', day_7_uzonia: '', day_30_uzonia: '', day_90_uzonia: '', day_180_uzonia: '', index: '', days: '' };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Component
@@ -694,6 +754,7 @@ const UzoniaDataPage: React.FC = () => {
   const [pendingLang,setPendingLang]= useState<LangKey | null>(null);
   const [isLoading,  setIsLoading]  = useState(true);
   const [loadError,  setLoadError]  = useState<string | null>(null);
+  const [fName, setFName] = useState('');  // Add this line
 
   const t = TRANSLATIONS[lang] ?? TRANSLATIONS.en;
 
@@ -802,7 +863,7 @@ const UzoniaDataPage: React.FC = () => {
   // ── Filters ───────────────────────────────────────────────────────────────
   const [fDate,      setFDate]      = useState('');
   const [fDays,      setFDays]      = useState('');
-  const [fFileId,    setFFileId]    = useState('');
+  const [fDayType,   setFDayType]   = useState('');
   const [fRate,      setFRate]      = useState('');
   const [fUzonia,    setFUzonia]    = useState('');
   const [fDay7,      setFDay7]      = useState('');
@@ -818,24 +879,37 @@ const UzoniaDataPage: React.FC = () => {
   const itemsPerPage = 15;
 
   const filteredData = useMemo(() => {
-    let f = [...rows];
-    const ci = (s: string) => s?.toLowerCase() ?? '';
-    if (fDate.trim())      f = f.filter(r => formatDate(r.uzonia_date).includes(fDate.trim()));
-    if (fDays.trim())      f = f.filter(r => String(r.days).includes(fDays.trim()));
-    if (fFileId.trim())    f = f.filter(r => ci(r.file_id).includes(ci(fFileId.trim())));
-    if (fRate.trim())      f = f.filter(r => fmtRate(r.rate).includes(fRate.trim()));
-    if (fUzonia.trim())    f = f.filter(r => fmtRate(r.uzonia).includes(fUzonia.trim()));
-    if (fDay7.trim())      f = f.filter(r => fmtRate(r.day_7_uzonia).includes(fDay7.trim()));
-    if (fDay30.trim())     f = f.filter(r => fmtRate(r.day_30_uzonia).includes(fDay30.trim()));
-    if (fDay90.trim())     f = f.filter(r => fmtRate(r.day_90_uzonia).includes(fDay90.trim()));
-    if (fDay180.trim())    f = f.filter(r => fmtRate(r.day_180_uzonia).includes(fDay180.trim()));
-    if (fIndex.trim())     f = f.filter(r => fmtIndex(r.index).includes(fIndex.trim()));
-    if (fUsername.trim())  f = f.filter(r => ci(r.username ?? '').includes(ci(fUsername.trim())));
-    if (fFirstName.trim()) f = f.filter(r => ci(r.first_name ?? '').includes(ci(fFirstName.trim())));
-    if (fLastName.trim())  f = f.filter(r => ci(r.last_name ?? '').includes(ci(fLastName.trim())));
-    if (fCreated.trim())   f = f.filter(r => ci(formatDateTime(r.created_at)).includes(ci(fCreated.trim())));
-    return f;
-  }, [rows, fDate, fDays, fFileId, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fUsername, fFirstName, fLastName, fCreated]);
+      let f = [...rows];
+      const ci = (s: string) => s?.toLowerCase() ?? '';
+
+      if (fDate.trim())      f = f.filter(r => formatDate(r.uzonia_date).includes(fDate.trim()));
+      if (fDays.trim())      f = f.filter(r => String(r.days).includes(fDays.trim()));
+      if (fDayType)          f = f.filter(r => r.day_type === fDayType);
+      if (fRate.trim())      f = f.filter(r => fmtRate(r.rate).includes(fRate.trim()));
+      if (fUzonia.trim())    f = f.filter(r => fmtRate(r.uzonia).includes(fUzonia.trim()));
+      if (fDay7.trim())      f = f.filter(r => fmtRate(r.day_7_uzonia).includes(fDay7.trim()));
+      if (fDay30.trim())     f = f.filter(r => fmtRate(r.day_30_uzonia).includes(fDay30.trim()));
+      if (fDay90.trim())     f = f.filter(r => fmtRate(r.day_90_uzonia).includes(fDay90.trim()));
+      if (fDay180.trim())    f = f.filter(r => fmtRate(r.day_180_uzonia).includes(fDay180.trim()));
+      if (fIndex.trim())     f = f.filter(r => fmtIndex(r.index).includes(fIndex.trim()));
+      if (fUsername.trim())  f = f.filter(r => ci(r.username ?? '').includes(ci(fUsername.trim())));
+
+      // NEW: Combined name filter (searches both first_name and last_name)
+      if (fName.trim()) {
+        const nameSearch = fName.trim().toLowerCase();
+        f = f.filter(r => {
+          const fullName = ` ${r.last_name ?? ''} ${r.first_name ?? ''}`.toLowerCase();
+          const lastName = (r.last_name ?? '').toLowerCase();
+          const firstName = (r.first_name ?? '').toLowerCase();
+          return fullName.includes(nameSearch) || lastName.includes(nameSearch) || firstName.includes(nameSearch);
+        });
+      }
+
+      if (fCreated.trim())   f = f.filter(r => ci(formatDateTime(r.created_at)).includes(ci(fCreated.trim())));
+
+      return f;
+  }, [rows, fDate, fDays, fDayType, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fUsername, fName, fCreated]);
+
 
   const stats = useMemo(() => {
     if (!rows.length) return { total: 0, firstDate: '—', latestDate: '—', avgUzonia: '—', minUzonia: '—', maxUzonia: '—' };
@@ -852,18 +926,18 @@ const UzoniaDataPage: React.FC = () => {
     };
   }, [rows]);
 
-  const hasActiveFilters = fDate || fDays || fFileId || fRate || fUzonia || fDay7 || fDay30 || fDay90 || fDay180 || fIndex || fUsername || fFirstName || fLastName || fCreated;
+  const hasActiveFilters = fDate || fDays || fDayType || fRate || fUzonia || fDay7 || fDay30 || fDay90 || fDay180 || fIndex || fUsername || fName || fCreated;
   const totalPages    = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = useMemo(
     () => filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
     [filteredData, currentPage]
   );
-  useEffect(() => { setCurrentPage(1); }, [fDate, fDays, fFileId, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fUsername, fFirstName, fLastName, fCreated]);
+  useEffect(() => { setCurrentPage(1); }, [fDate, fDays, fDayType, fRate, fUzonia, fDay7, fDay30, fDay90, fDay180, fIndex, fUsername, fFirstName, fLastName, fCreated]);
 
   const clearFilters = useCallback(() => {
-    setFDate(''); setFDays(''); setFFileId(''); setFRate(''); setFUzonia('');
+    setFDate(''); setFDays(''); setFDayType(''); setFRate(''); setFUzonia('');
     setFDay7(''); setFDay30(''); setFDay90(''); setFDay180(''); setFIndex('');
-    setFUsername(''); setFFirstName(''); setFLastName(''); setFCreated('');
+    setFUsername(''); setFName(); setFCreated('');
   }, []);
 
   // ── Modals ────────────────────────────────────────────────────────────────
@@ -880,6 +954,7 @@ const UzoniaDataPage: React.FC = () => {
   const openEditModal = (r: UzoniaRow) => {
     setTargetRow(r);
     setEditForm({
+      day_type: (r.day_type as DayType) || 'Working day',
       rate: String(r.rate), uzonia: String(r.uzonia),
       day_7_uzonia: String(r.day_7_uzonia), day_30_uzonia: String(r.day_30_uzonia),
       day_90_uzonia: String(r.day_90_uzonia), day_180_uzonia: String(r.day_180_uzonia),
@@ -891,13 +966,13 @@ const UzoniaDataPage: React.FC = () => {
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const handleAdd = async () => {
-    const { file_id, uzonia_date, days, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index } = addForm;
-    if (!file_id.trim() || !uzonia_date || !days || !rate || !uzonia || !day_7_uzonia || !day_30_uzonia || !day_90_uzonia || !day_180_uzonia || !index) {
+    const { day_type, uzonia_date, days, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index } = addForm;
+    if (!day_type || !uzonia_date || !days || !rate || !uzonia || !day_7_uzonia || !day_30_uzonia || !day_90_uzonia || !day_180_uzonia || !index) {
       showToast(t.allRequired, 'error'); return;
     }
     setIsSaving(true);
     try {
-      const body = { file_id, uzonia_date, days: Number(days), rate: Number(rate), uzonia: Number(uzonia), day_7_uzonia: Number(day_7_uzonia), day_30_uzonia: Number(day_30_uzonia), day_90_uzonia: Number(day_90_uzonia), day_180_uzonia: Number(day_180_uzonia), index: Number(index) };
+      const body = { day_type, uzonia_date, days: Number(days), rate: Number(rate), uzonia: Number(uzonia), day_7_uzonia: Number(day_7_uzonia), day_30_uzonia: Number(day_30_uzonia), day_90_uzonia: Number(day_90_uzonia), day_180_uzonia: Number(day_180_uzonia), index: Number(index) };
       const res = await apiFetch('/api/add_new_uzonia', { method: 'POST', body: JSON.stringify(body) });
       if (!res || !res.ok) { const e = await res!.json(); throw new Error(e.detail); }
       setIsAddModalOpen(false); setAddForm({ ...EMPTY_ADD });
@@ -909,13 +984,13 @@ const UzoniaDataPage: React.FC = () => {
 
   const handleEdit = async () => {
     if (!targetRow) return;
-    const { rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days } = editForm;
-    if (!rate || !uzonia || !day_7_uzonia || !day_30_uzonia || !day_90_uzonia || !day_180_uzonia || !index || !days) {
+    const { day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days } = editForm;
+    if (!day_type || !rate || !uzonia || !day_7_uzonia || !day_30_uzonia || !day_90_uzonia || !day_180_uzonia || !index || !days) {
       showToast(t.rateRequired, 'error'); return;
     }
     setIsSaving(true);
     try {
-      const body = { uzonia_date: targetRow.uzonia_date, rate: Number(rate), uzonia: Number(uzonia), day_7_uzonia: Number(day_7_uzonia), day_30_uzonia: Number(day_30_uzonia), day_90_uzonia: Number(day_90_uzonia), day_180_uzonia: Number(day_180_uzonia), index: Number(index), days: Number(days) };
+      const body = { day_type, uzonia_date: targetRow.uzonia_date, rate: Number(rate), uzonia: Number(uzonia), day_7_uzonia: Number(day_7_uzonia), day_30_uzonia: Number(day_30_uzonia), day_90_uzonia: Number(day_90_uzonia), day_180_uzonia: Number(day_180_uzonia), index: Number(index), days: Number(days) };
       const res = await apiFetch('/api/edit_uzonia_data', { method: 'PUT', body: JSON.stringify(body) });
       if (!res || !res.ok) { const e = await res!.json(); throw new Error(e.detail); }
       setIsEditModalOpen(false); setTargetRow(null);
@@ -944,10 +1019,13 @@ const UzoniaDataPage: React.FC = () => {
     background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0',
     borderRadius: '9px', outline: 'none', boxSizing: 'border-box',
   };
+  const selectStyle: React.CSSProperties = {
+    ...inputStyle,
+    cursor: 'pointer', appearance: 'none', WebkitAppearance: 'none',
+  };
   const labelStyle: React.CSSProperties = {
     display: 'block', marginBottom: '5px', fontWeight: '600', color: '#374151', fontSize: '13px',
   };
-
 
   // ── NavBtn ────────────────────────────────────────────────────────────────
   const NavBtn = ({ page }: { page: typeof NAV_PAGES[0] }) => {
@@ -973,10 +1051,27 @@ const UzoniaDataPage: React.FC = () => {
   };
 
   const allowFloat = (value: string) => {
-      return value
-        .replace(/[^0-9.]/g, "")      // remove non-numeric
-        .replace(/(\..*)\./g, "$1"); // only one dot allowed
+    return value
+      .replace(/[^0-9.]/g, "")
+      .replace(/(\..*)\./g, "$1");
   };
+
+  // ── Day type select for modals ────────────────────────────────────────────
+  const DayTypeSelect = ({ value, onChange }: { value: string; onChange: (v: DayType) => void }) => (
+    <div style={{ position: 'relative' }}>
+      <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>calendar_view_day</span>
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value as DayType)}
+        style={{ ...selectStyle, paddingLeft: '34px' }}
+      >
+        {DAY_TYPES.map(dt => (
+          <option key={dt} value={dt}>{dt}</option>
+        ))}
+      </select>
+      <span className="material-symbols-outlined" style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>expand_more</span>
+    </div>
+  );
 
   // ─────────────────────────────────────────────────────────────────────────
   // Render
@@ -1095,7 +1190,7 @@ const UzoniaDataPage: React.FC = () => {
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: '700', color: '#0a3b5c', fontSize: '15px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {user ? `${user.first_name} ${user.last_name}` : '—'}
+                          {user ? `${user.last_name} ${user.first_name}` : '—'}
                         </div>
                         <div style={{ color: '#64748b', fontSize: '12px', marginTop: '2px' }}>@{user?.username ?? '—'}</div>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '6px', padding: '3px 10px', background: '#e8f0fe', borderRadius: '20px', fontSize: '11px', color: '#0a3b5c', fontWeight: '600' }}>
@@ -1168,69 +1263,76 @@ const UzoniaDataPage: React.FC = () => {
             ))}
           </div>
 
-          {/* ── Filter bar ── */}
-          <div style={{ background: 'white', padding: '12px 16px', borderRadius: '13px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,40,70,0.05)', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '6px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#0a3b5c', flexShrink: 0 }}>filter_alt</span>
-              <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151', flexShrink: 0 }}>{t.filterLabel}</span>
+{/* ── Filter bar ── */}
+<div style={{ background: 'white', padding: '12px 16px', borderRadius: '13px', marginBottom: '14px', boxShadow: '0 2px 8px rgba(0,40,70,0.05)', border: '1px solid #e2e8f0' }}>
+  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '6px' }}>
+    <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#0a3b5c', flexShrink: 0 }}>filter_alt</span>
+    <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151', flexShrink: 0 }}>{t.filterLabel}</span>
 
-              <ColFilter value={fDate}      onChange={setFDate}      placeholder={t.phDate}      icon="event"       flex="130px" />
-              <ColFilter value={fDays}      onChange={setFDays}      placeholder={t.phDays}      icon="today"       flex="76px"  numeric />
-              <ColFilter value={fFileId}    onChange={setFFileId}    placeholder={t.phFileId}    icon="attach_file" flex="100px" />
-              <ColFilter value={fRate}      onChange={setFRate}      placeholder={t.phRate}      icon="percent"     flex="90px"  numeric />
-              <ColFilter value={fUzonia}    onChange={setFUzonia}    placeholder={t.phUzonia}    icon="percent"     flex="90px"  numeric />
-              <ColFilter value={fDay7}      onChange={setFDay7}      placeholder={t.ph7Day}      icon="date_range"  flex="82px"  numeric />
-              <ColFilter value={fDay30}     onChange={setFDay30}     placeholder={t.ph30Day}     icon="date_range"  flex="82px"  numeric />
-              <ColFilter value={fDay90}     onChange={setFDay90}     placeholder={t.ph90Day}     icon="date_range"  flex="82px"  numeric />
-              <ColFilter value={fDay180}    onChange={setFDay180}    placeholder={t.ph180Day}    icon="date_range"  flex="90px"  numeric />
-              <ColFilter value={fIndex}     onChange={setFIndex}     placeholder={t.phIndex}     icon="functions"   flex="82px"  numeric />
-              <ColFilter value={fUsername}  onChange={setFUsername}  placeholder={t.phUsername}  icon="badge"       flex="100px" />
-              <ColFilter value={fFirstName} onChange={setFFirstName} placeholder={t.phFirstName} icon="person"      flex="90px"  />
-              <ColFilter value={fLastName}  onChange={setFLastName}  placeholder={t.phLastName}  icon="person"      flex="90px"  />
-              <ColFilter value={fCreated}   onChange={setFCreated}   placeholder={t.phCreatedAt} icon="schedule"    flex="110px" />
+    <ColFilter value={fDate}      onChange={setFDate}      placeholder={t.phDate}      icon="event"              flex="130px" />
+    <ColFilter value={fDays}      onChange={setFDays}      placeholder={t.phDays}      icon="today"              flex="76px"  numeric />
+    <ColFilter value={fRate}      onChange={setFRate}      placeholder={t.phRate}      icon="percent"            flex="90px"  numeric />
+    <ColFilter value={fUzonia}    onChange={setFUzonia}    placeholder={t.phUzonia}    icon="percent"            flex="90px"  numeric />
+    <ColFilter value={fDay7}      onChange={setFDay7}      placeholder={t.ph7Day}      icon="date_range"         flex="82px"  numeric />
+    <ColFilter value={fDay30}     onChange={setFDay30}     placeholder={t.ph30Day}     icon="date_range"         flex="82px"  numeric />
+    <ColFilter value={fDay90}     onChange={setFDay90}     placeholder={t.ph90Day}     icon="date_range"         flex="82px"  numeric />
+    <ColFilter value={fDay180}    onChange={setFDay180}    placeholder={t.ph180Day}    icon="date_range"         flex="90px"  numeric />
 
-              {hasActiveFilters && (
-                <button onClick={clearFilters} style={{ padding: '7px 10px', fontSize: '11px', fontWeight: '500', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>{t.clearAll}
-                </button>
-              )}
+    {hasActiveFilters && (
+      <button onClick={clearFilters} style={{ padding: '7px 10px', fontSize: '11px', fontWeight: '500', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>close</span>{t.clearAll}
+      </button>
+    )}
 
-              <button onClick={openAddModal} style={{
-                marginLeft: 'auto', flexShrink: 0, padding: '8px 16px', fontSize: '13px', fontWeight: '600',
-                background: 'linear-gradient(135deg,#0a3b5c,#1a6494)', color: 'white',
-                border: '2px solid rgba(233,183,65,0.4)', borderRadius: '10px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '6px',
-                boxShadow: '0 3px 12px rgba(10,59,92,0.3)', transition: 'all 0.15s',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#e9b741,#d4a030)'; e.currentTarget.style.color = '#0a3b5c'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#0a3b5c,#1a6494)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add_circle</span>
-                {t.addRecord}
-              </button>
-            </div>
+    {/* Row 2: Second row filters - Index, Username, Name, Created At, Add button */}
+    <div style={{ width: '100%', display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#0a3b5c', flexShrink: 0 }}>filter_list</span>
+      <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151', flexShrink: 0 }}>Meta filters:</span>
 
-            {hasActiveFilters && (
-              <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', padding: '5px 8px', background: '#f1f5f9', borderRadius: '7px' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#0a3b5c' }}>info</span>
-                {fDate      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Date: <strong>{fDate}</strong></span>}
-                {fDays      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Days: <strong>{fDays}</strong></span>}
-                {fFileId    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>FileID: <strong>{fFileId}</strong></span>}
-                {fRate      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Rate: <strong>{fRate}</strong></span>}
-                {fUzonia    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Uzonia: <strong>{fUzonia}</strong></span>}
-                {fDay7      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>7d: <strong>{fDay7}</strong></span>}
-                {fDay30     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>30d: <strong>{fDay30}</strong></span>}
-                {fDay90     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>90d: <strong>{fDay90}</strong></span>}
-                {fDay180    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>180d: <strong>{fDay180}</strong></span>}
-                {fIndex     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Index: <strong>{fIndex}</strong></span>}
-                {fUsername  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Username: <strong>{fUsername}</strong></span>}
-                {fFirstName && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>First: <strong>{fFirstName}</strong></span>}
-                {fLastName  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Last: <strong>{fLastName}</strong></span>}
-                {fCreated   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Created: <strong>{fCreated}</strong></span>}
-                <span style={{ marginLeft: 'auto' }}>{t.results(filteredData.length)}</span>
-              </div>
-            )}
-          </div>
+      {/* These now appear in row 2 instead of row 1 */}
+      <ColFilter value={fIndex}     onChange={setFIndex}     placeholder={t.phIndex}     icon="functions"          flex="100px" numeric />
+      <ColFilter value={fUsername}  onChange={setFUsername}  placeholder={t.phUsername}  icon="badge"              flex="120px" />
+      <ColFilter value={fName}      onChange={setFName}      placeholder="Name…"         icon="person"             flex="140px" />
+      <ColFilter value={fCreated}   onChange={setFCreated}   placeholder={t.phCreatedAt} icon="schedule"           flex="130px" />
+      <DayTypeFilter value={fDayType} onChange={setFDayType} placeholder={t.phDayType} />
+
+      <button onClick={openAddModal} style={{
+        marginLeft: 'auto', flexShrink: 0, padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+        background: 'linear-gradient(135deg,#0a3b5c,#1a6494)', color: 'white',
+        border: '2px solid rgba(233,183,65,0.4)', borderRadius: '10px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: '6px',
+        boxShadow: '0 3px 12px rgba(10,59,92,0.3)', transition: 'all 0.15s',
+      }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#e9b741,#d4a030)'; e.currentTarget.style.color = '#0a3b5c'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg,#0a3b5c,#1a6494)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.transform = 'translateY(0)'; }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>add_circle</span>
+        {t.addRecord}
+      </button>
+    </div>
+  </div>
+
+  {/* Active filters display (update this section too) */}
+  {hasActiveFilters && (
+    <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', padding: '5px 8px', background: '#f1f5f9', borderRadius: '7px' }}>
+      <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#0a3b5c' }}>info</span>
+      {fDate      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Date: <strong>{fDate}</strong></span>}
+      {fDays      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Days: <strong>{fDays}</strong></span>}
+      {fDayType   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Day Type: <strong>{fDayType}</strong></span>}
+      {fRate      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Rate: <strong>{fRate}</strong></span>}
+      {fUzonia    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Uzonia: <strong>{fUzonia}</strong></span>}
+      {fDay7      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>7d: <strong>{fDay7}</strong></span>}
+      {fDay30     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>30d: <strong>{fDay30}</strong></span>}
+      {fDay90     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>90d: <strong>{fDay90}</strong></span>}
+      {fDay180    && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>180d: <strong>{fDay180}</strong></span>}
+      {fIndex     && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px', fontFamily: 'monospace' }}>Index: <strong>{fIndex}</strong></span>}
+      {fUsername  && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Username: <strong>{fUsername}</strong></span>}
+      {fName      && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Name: <strong>{fName}</strong></span>}
+      {fCreated   && <span style={{ background: 'white', padding: '1px 5px', borderRadius: '4px' }}>Created: <strong>{fCreated}</strong></span>}
+      <span style={{ marginLeft: 'auto' }}>{t.results(filteredData.length)}</span>
+    </div>
+  )}
+</div>
 
           {/* ── Table ── */}
           <div style={{ background: 'white', borderRadius: '14px', boxShadow: '0 2px 10px rgba(0,40,70,0.06)', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
@@ -1261,9 +1363,9 @@ const UzoniaDataPage: React.FC = () => {
                     <thead>
                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid #0a3b5c' }}>
                         {[
-                          t.colIndex, t.colDate, t.colDays, t.colFileId,
+                          t.colIndex, t.colDate, t.colDays, t.colDayType,
                           t.colRate, t.colUzonia, t.col7Day, t.col30Day, t.col90Day, t.col180Day,
-                          t.colIndex2, t.colUsername, t.colFirstName, t.colLastName,
+                          t.colIndex2, t.colUsername, "Name",
                           t.colCreatedAt, t.colActions,
                         ].map(col => (
                           <th key={col} style={{ padding: '10px 11px', textAlign: 'center', fontWeight: '600', color: '#0a3b5c', fontSize: '11px', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{col}</th>
@@ -1295,9 +1397,9 @@ const UzoniaDataPage: React.FC = () => {
                               <DaysBadge value={item.days} />
                             </td>
 
-                            {/* File ID */}
-                            <td style={{ padding: '9px 11px', maxWidth: '120px' }}>
-                              <span style={{ fontSize: '11px', fontFamily: 'monospace', color: '#64748b', background: '#f8fafc', padding: '2px 5px', borderRadius: '4px', border: '1px solid #e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }} title={item.file_id}>{item.file_id}</span>
+                            {/* Day Type */}
+                            <td style={{ padding: '9px 11px', textAlign: 'center' }}>
+                              <DayTypeBadge value={item.day_type} />
                             </td>
 
                             {/* Rate */}
@@ -1328,22 +1430,12 @@ const UzoniaDataPage: React.FC = () => {
                               </div>
                             </td>
 
-                            {/* First Name */}
+                            {/* Combined Name (First + Last) */}
                             <td style={{ padding: '9px 11px', textAlign: 'center' }}>
                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#8b5cf6' }}>person</span>
-                                <span style={{ fontSize: '12px', color: item.first_name ? '#1e293b' : '#cbd5e1', whiteSpace: 'nowrap' }}>
-                                  {item.first_name || '—'}
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* Last Name */}
-                            <td style={{ padding: '9px 11px', textAlign: 'center' }}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#8b5cf6' }}>person</span>
-                                <span style={{ fontSize: '12px', color: item.last_name ? '#1e293b' : '#cbd5e1', whiteSpace: 'nowrap' }}>
-                                  {item.last_name || '—'}
+                                <span style={{ fontSize: '12px', color: '#1e293b', whiteSpace: 'nowrap' }}>
+                                  {`${item.last_name ?? '—'} ${item.first_name ?? '—'}`.trim()}
                                 </span>
                               </div>
                             </td>
@@ -1591,47 +1683,43 @@ const UzoniaDataPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* File ID */}
+              {/* Day Type */}
               <div>
-                <label style={labelStyle}>{t.fileId} <span style={{ color: '#dc2626' }}>*</span></label>
-                <div style={{ position: 'relative' }}>
-                  <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>attach_file</span>
-                  <input type="text" value={addForm.file_id} onChange={e => setAddForm(f => ({ ...f, file_id: e.target.value }))}
-                    placeholder="e.g. uzonia_2026_05_31" style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace' }} />
-                </div>
+                <label style={labelStyle}>{t.dayTypeLabel} <span style={{ color: '#dc2626' }}>*</span></label>
+                <DayTypeSelect value={addForm.day_type} onChange={v => setAddForm(f => ({ ...f, day_type: v }))} />
               </div>
 
-              {/* Rate fields 2-col grid - simple text inputs */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={labelStyle}>{t.rate} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={addForm.rate} onChange={e => setAddForm(f => ({ ...f, rate: allowFloat(e.target.value) }))} placeholder="13.5000" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.uzoniaLabel} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={addForm.uzonia} onChange={e => setAddForm(f => ({ ...f, uzonia: allowFloat(e.target.value) }))} placeholder="12.4800" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day7} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={addForm.day_7_uzonia} onChange={e => setAddForm(f => ({ ...f, day_7_uzonia: allowFloat(e.target.value) }))} placeholder="12.6100" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day30} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={addForm.day_30_uzonia} onChange={e => setAddForm(f => ({ ...f, day_30_uzonia: allowFloat(e.target.value)  }))} placeholder="12.8500" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day90} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={addForm.day_90_uzonia} onChange={e => setAddForm(f => ({ ...f, day_90_uzonia: allowFloat(e.target.value)  }))} placeholder="13.1200" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day180} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={addForm.day_180_uzonia} onChange={e => setAddForm(f => ({ ...f, day_180_uzonia: allowFloat(e.target.value)  }))} placeholder="13.4500" style={inputStyle} />
-                  </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>{t.indexLabel} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={addForm.index} onChange={e => setAddForm(f => ({ ...f, index: allowFloat(e.target.value) }))} placeholder="1.0000" style={inputStyle} />
-                  </div>
+              {/* Rate fields 2-col grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>{t.rate} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={addForm.rate} onChange={e => setAddForm(f => ({ ...f, rate: allowFloat(e.target.value) }))} placeholder="13.5000" style={inputStyle} />
                 </div>
+                <div>
+                  <label style={labelStyle}>{t.uzoniaLabel} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={addForm.uzonia} onChange={e => setAddForm(f => ({ ...f, uzonia: allowFloat(e.target.value) }))} placeholder="12.4800" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day7} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={addForm.day_7_uzonia} onChange={e => setAddForm(f => ({ ...f, day_7_uzonia: allowFloat(e.target.value) }))} placeholder="12.6100" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day30} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={addForm.day_30_uzonia} onChange={e => setAddForm(f => ({ ...f, day_30_uzonia: allowFloat(e.target.value) }))} placeholder="12.8500" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day90} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={addForm.day_90_uzonia} onChange={e => setAddForm(f => ({ ...f, day_90_uzonia: allowFloat(e.target.value) }))} placeholder="13.1200" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day180} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={addForm.day_180_uzonia} onChange={e => setAddForm(f => ({ ...f, day_180_uzonia: allowFloat(e.target.value) }))} placeholder="13.4500" style={inputStyle} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>{t.indexLabel} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={addForm.index} onChange={e => setAddForm(f => ({ ...f, index: allowFloat(e.target.value) }))} placeholder="1.0000" style={inputStyle} />
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -1652,105 +1740,103 @@ const UzoniaDataPage: React.FC = () => {
       )}
 
       {/* ═══════════════════════════ EDIT MODAL ═══════════════════════════ */}
-        {isEditModalOpen && targetRow && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-            onClick={() => { if (!isSaving) setIsEditModalOpen(false); }}>
-            <div style={{ background: 'white', borderRadius: '20px', padding: '28px', width: '580px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.3)', border: '1px solid #e2e8f0' }}
-              onClick={e => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
-                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0a3b5c', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#0a3b5c' }}>edit</span>
-                  {t.editTitle}
-                </h2>
-                <button onClick={() => { if (!isSaving) setIsEditModalOpen(false); }} style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>×</button>
-              </div>
+      {isEditModalOpen && targetRow && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+          onClick={() => { if (!isSaving) setIsEditModalOpen(false); }}>
+          <div style={{ background: 'white', borderRadius: '20px', padding: '28px', width: '580px', maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.3)', border: '1px solid #e2e8f0' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#0a3b5c', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#0a3b5c' }}>edit</span>
+                {t.editTitle}
+              </h2>
+              <button onClick={() => { if (!isSaving) setIsEditModalOpen(false); }} style={{ border: 'none', background: '#f1f5f9', cursor: 'pointer', color: '#64748b', width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>×</button>
+            </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '22px' }}>
-                  {/* Date + Days */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div>
-                      <label style={labelStyle}>{t.uzoniaDate} <span style={{ color: '#dc2626' }}>*</span></label>
-                      <div style={{ position: 'relative' }}>
-                        <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>event</span>
-                        <input type="date" value={addForm.uzonia_date} onChange={e => setAddForm(f => ({ ...f, uzonia_date: e.target.value }))}
-                          style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace', colorScheme: 'light' }} />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>{t.days} <span style={{ color: '#dc2626' }}>*</span></label>
-                      <div style={{ position: 'relative' }}>
-                        <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>today</span>
-                        <input type="number" min="1" step="1" value={addForm.days} onChange={e => setAddForm(f => ({ ...f, days: allowFloat(e.target.value) }))}
-                          placeholder="1" style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* File ID */}
-                  <div>
-                    <label style={labelStyle}>{t.fileId} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <div style={{ position: 'relative' }}>
-                      <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>attach_file</span>
-                      <input type="text" value={addForm.file_id} onChange={e => setAddForm(f => ({ ...f, file_id: e.target.value }))}
-                        placeholder="e.g. uzonia_2026_05_31" style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace' }} />
-                    </div>
-                  </div>
-
-                {/* Rate fields - simple text inputs with allowFloat */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={labelStyle}>{t.rate} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={editForm.rate} onChange={e => setEditForm(f => ({ ...f, rate: allowFloat(e.target.value) }))} placeholder="13.5000" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.uzoniaLabel} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={editForm.uzonia} onChange={e => setEditForm(f => ({ ...f, uzonia: allowFloat(e.target.value) }))} placeholder="12.4800" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day7} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={editForm.day_7_uzonia} onChange={e => setEditForm(f => ({ ...f, day_7_uzonia: allowFloat(e.target.value) }))} placeholder="12.6100" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day30} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={editForm.day_30_uzonia} onChange={e => setEditForm(f => ({ ...f, day_30_uzonia: allowFloat(e.target.value) }))} placeholder="12.8500" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day90} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={editForm.day_90_uzonia} onChange={e => setEditForm(f => ({ ...f, day_90_uzonia: allowFloat(e.target.value) }))} placeholder="13.1200" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>{t.day180} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={editForm.day_180_uzonia} onChange={e => setEditForm(f => ({ ...f, day_180_uzonia: allowFloat(e.target.value) }))} placeholder="13.4500" style={inputStyle} />
-                  </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>{t.indexLabel} <span style={{ color: '#dc2626' }}>*</span></label>
-                    <input type="text" value={editForm.index} onChange={e => setEditForm(f => ({ ...f, index: allowFloat(e.target.value) }))} placeholder="1.0000" style={inputStyle} />
-                  </div>
-                </div>
-
-                {/* Created at */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '22px' }}>
+              {/* Date (read-only) + Days */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ ...labelStyle, color: '#94a3b8' }}>{t.createdAtLabel}</label>
-                  <input type="text" value={formatDateTime(targetRow.created_at)} disabled style={{ ...inputStyle, background: '#f8fafc', color: '#94a3b8', fontSize: '12px', fontFamily: 'monospace' }} />
+                  <label style={{ ...labelStyle, color: '#94a3b8' }}>
+                    {t.uzoniaDate} <span style={{ fontSize: '11px', fontWeight: '400', color: '#94a3b8' }}>(read-only)</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#cbd5e1', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>event</span>
+                    <input type="text" value={formatDate(targetRow.uzonia_date)} disabled
+                      style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace', background: '#f8fafc', color: '#94a3b8' }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.days} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <span className="material-symbols-outlined" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '16px', pointerEvents: 'none', zIndex: 2 }}>today</span>
+                    <input type="number" min="1" step="1" value={editForm.days} onChange={e => setEditForm(f => ({ ...f, days: e.target.value }))}
+                      placeholder="1" style={{ ...inputStyle, paddingLeft: '34px', fontFamily: 'monospace' }} />
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button onClick={() => { if (!isSaving) setIsEditModalOpen(false); }}
-                  style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '500', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer' }}>
-                  {t.cancel}
-                </button>
-                <button onClick={handleEdit} disabled={isSaving}
-                  style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '600', background: isSaving ? '#94a3b8' : 'linear-gradient(135deg,#0a3b5c,#1a6494)', color: 'white', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: isSaving ? 'none' : '0 4px 12px rgba(10,59,92,0.3)' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '15px', animation: isSaving ? 'spin 1.5s linear infinite' : 'none' }}>
-                    {isSaving ? 'hourglass_empty' : 'save'}
-                  </span>
-                  {isSaving ? t.saving : t.saveChanges}
-                </button>
+              {/* Day Type */}
+              <div>
+                <label style={labelStyle}>{t.dayTypeLabel} <span style={{ color: '#dc2626' }}>*</span></label>
+                <DayTypeSelect value={editForm.day_type} onChange={v => setEditForm(f => ({ ...f, day_type: v }))} />
+              </div>
+
+              {/* Rate fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={labelStyle}>{t.rate} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={editForm.rate} onChange={e => setEditForm(f => ({ ...f, rate: allowFloat(e.target.value) }))} placeholder="13.5000" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.uzoniaLabel} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={editForm.uzonia} onChange={e => setEditForm(f => ({ ...f, uzonia: allowFloat(e.target.value) }))} placeholder="12.4800" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day7} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={editForm.day_7_uzonia} onChange={e => setEditForm(f => ({ ...f, day_7_uzonia: allowFloat(e.target.value) }))} placeholder="12.6100" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day30} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={editForm.day_30_uzonia} onChange={e => setEditForm(f => ({ ...f, day_30_uzonia: allowFloat(e.target.value) }))} placeholder="12.8500" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day90} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={editForm.day_90_uzonia} onChange={e => setEditForm(f => ({ ...f, day_90_uzonia: allowFloat(e.target.value) }))} placeholder="13.1200" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>{t.day180} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={editForm.day_180_uzonia} onChange={e => setEditForm(f => ({ ...f, day_180_uzonia: allowFloat(e.target.value) }))} placeholder="13.4500" style={inputStyle} />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>{t.indexLabel} <span style={{ color: '#dc2626' }}>*</span></label>
+                  <input type="text" value={editForm.index} onChange={e => setEditForm(f => ({ ...f, index: allowFloat(e.target.value) }))} placeholder="1.0000" style={inputStyle} />
+                </div>
+              </div>
+
+              {/* Created at (read-only) */}
+              <div>
+                <label style={{ ...labelStyle, color: '#94a3b8' }}>{t.createdAtLabel}</label>
+                <input type="text" value={formatDateTime(targetRow.created_at)} disabled style={{ ...inputStyle, background: '#f8fafc', color: '#94a3b8', fontSize: '12px', fontFamily: 'monospace' }} />
               </div>
             </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => { if (!isSaving) setIsEditModalOpen(false); }}
+                style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '500', background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer' }}>
+                {t.cancel}
+              </button>
+              <button onClick={handleEdit} disabled={isSaving}
+                style={{ padding: '10px 20px', fontSize: '13px', fontWeight: '600', background: isSaving ? '#94a3b8' : 'linear-gradient(135deg,#0a3b5c,#1a6494)', color: 'white', border: 'none', borderRadius: '10px', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: isSaving ? 'none' : '0 4px 12px rgba(10,59,92,0.3)' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '15px', animation: isSaving ? 'spin 1.5s linear infinite' : 'none' }}>
+                  {isSaving ? 'hourglass_empty' : 'save'}
+                </span>
+                {isSaving ? t.saving : t.saveChanges}
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* ═══════════════════════════ DELETE MODAL ═══════════════════════════ */}
       {isDeleteModalOpen && targetRow && (
@@ -1774,7 +1860,7 @@ const UzoniaDataPage: React.FC = () => {
               <div style={{ paddingLeft: '20px', fontSize: '12px', color: '#4b5563', lineHeight: '2.1', textAlign: 'left' }}>
                 <div>Date: <strong style={{ fontFamily: 'monospace', color: '#dc2626' }}>{formatDate(targetRow.uzonia_date)}</strong></div>
                 <div>Days: <strong style={{ fontFamily: 'monospace', color: '#0369a1' }}>{targetRow.days}</strong></div>
-                <div>File ID: <strong style={{ fontFamily: 'monospace' }}>{targetRow.file_id}</strong></div>
+                <div>Day Type: <strong>{targetRow.day_type}</strong></div>
                 <div>Rate: <strong style={{ fontFamily: 'monospace' }}>{fmtRate(targetRow.rate)}</strong></div>
                 <div>Uzonia: <strong style={{ fontFamily: 'monospace' }}>{fmtRate(targetRow.uzonia)}</strong></div>
                 <div>Index: <strong style={{ fontFamily: 'monospace' }}>{fmtIndex(targetRow.index)}</strong></div>

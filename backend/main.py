@@ -1022,25 +1022,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         final_uzonia_data_dict['index'] = uzonia_index
         final_uzonia_data_dict['uzonia_date'] = cb_date
 
-        days_n_periods = {7:7, 30:30, 90:90, 180:180}
-        # for period_key, latest_n_value in days_n_periods.items():
-        #     # 1. Start with the 'un-synced' days (the gap between last data and now)
-        #     # Assuming 'current_rate' is the rate for the gap period
-        #     total_growth = (1 + ((day_uzonia / 100) * (n_day_number / 365)))
-        #     till_date = cb_date - timedelta(days=period_key)
-        #     history = await get_latest_n_uzonia(latest_n=latest_n_value)
-        #     print('History:', history)
-        #     total_days_in_period = n_day_number
-        #
-        #     for rate_value, active_days in history:
-        #         # 2. Compound each historical day using ITS OWN 'active_days' (usually 1, or 3 for weekends)
-        #         total_growth *= (1 + ((rate_value / 100) * (active_days / 365)))
-        #         total_days_in_period += active_days
-        #
-        #     # 3. Final Annualization using the actual total days elapsed
-        #     n_day_final_value = ((total_growth - 1) * (365 / total_days_in_period)) * 100
-        #     print('n_day_final_uzonia_value:', n_day_final_value)
-        #     final_uzonia_data_dict[f'day_{period_key}_uzonia'] = n_day_final_value
+        days_n_periods = {7:6, 30:29, 90:89, 180:179}
         for period_key, latest_n_value in days_n_periods.items():
             nth_index_value = await get_nth_uzonia_data(nth_value=latest_n_value)
             print(f'nth_index_value: {nth_index_value}', type(nth_index_value))
@@ -1312,7 +1294,6 @@ async def get_all_uzonia_data_api(user_session_data = Depends(get_current_user))
 
 
 class AddUzoniaData(BaseModel):
-    file_id: str
     day_type: str
     rate: float
     uzonia: float
@@ -1330,13 +1311,14 @@ async def add_new_uzonia_api(data: AddUzoniaData, user_session_data = Depends(ge
         logger.warning("edit_uzonia_api user not found in session")
         raise HTTPException(status_code=404, detail="User doesn't exist!")
 
+    file_id = uuid4().hex[:12]
     user_session = await get_session(user_session_data['session_id'])
 
     logger.info("add_new_uzonia | uzonia_date=%s, file_id=%s, uzonia=%s, day_7_uzonia=%s, day_30_uzonia=%s, day_90_uzonia=%s, day_180_uzonia=%s, index=%s, days=%s",
-        data.uzonia_date, data.file_id, data.uzonia, data.day_7_uzonia,
+        data.uzonia_date, file_id, data.uzonia, data.day_7_uzonia,
                 data.day_30_uzonia, data.day_90_uzonia, data.day_180_uzonia, data.index, data.days)
 
-    if (not data.file_id or not data.uzonia or not data.day_7_uzonia or not data.day_30_uzonia or not data.day_90_uzonia
+    if (not file_id or not data.uzonia or not data.day_7_uzonia or not data.day_30_uzonia or not data.day_90_uzonia
             or not data.day_180_uzonia or not data.index or not data.uzonia_date or not data.days):
         logger.warning("add_new_uzonia | Missing parameters")
         raise HTTPException(status_code=400, detail="new_uzonia and new_uzonia_date parameters are required!")
@@ -1356,7 +1338,7 @@ async def add_new_uzonia_api(data: AddUzoniaData, user_session_data = Depends(ge
         raise HTTPException(status_code=404, detail="Such data already exists!")
 
     unique_job_id = str(uuid4().hex)
-    updated_row = await add_new_uzonia_data(unique_job_id=unique_job_id, file_id=data.file_id,
+    updated_row = await add_new_uzonia_data(unique_job_id=unique_job_id, file_id=file_id,
                                             day_type=data.day_type,
                                             rate=data.rate,
                                             uzonia=data.uzonia,

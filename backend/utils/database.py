@@ -863,7 +863,7 @@ async def get_latest_n_uzonia(latest_n: int) -> list:
                 FROM uzonia_data
                 ORDER BY uzonia_date DESC
                 LIMIT $1
-            """, latest_n)
+            """, latest_n, day_type)
             if rows:
                 rows = [[float(row['uzonia']), float(row['days'])] for row in rows]
             else:
@@ -893,6 +893,7 @@ async def get_nth_uzonia_data(nth_value: int) -> float | None:
     except Exception as e:
         print(f"Error fetching UZONIA data: {e}")
         return None
+
 
 
 
@@ -962,7 +963,7 @@ async def get_last_five_uzonia():
         return None
 
 
-async def get_latest_uzonia_data(cb_date: date) -> Dict:
+async def get_latest_uzonia_data(cb_date: date, day_type = 'Working day') -> Dict:
     """Get latest uzonia data."""
     try:
         async with pool.acquire() as conn:
@@ -970,10 +971,10 @@ async def get_latest_uzonia_data(cb_date: date) -> Dict:
                 """
                 SELECT unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
                 FROM uzonia_data
-                WHERE uzonia_date < $1
+                WHERE uzonia_date < $1 and day_type == $2
                 ORDER BY uzonia_date DESC
                 LIMIT 1
-                """, cb_date)
+                """, cb_date, day_type)
         if row:
             return {'unique_job_id': row['unique_job_id'],
                     'file_id': row['file_id'],

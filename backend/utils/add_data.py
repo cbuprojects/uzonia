@@ -4,7 +4,8 @@ from datetime import datetime
 
 from numpy.ma.extras import unique
 
-from .database import check_existence_uzonia_data, add_new_uzonia_data, add_holiday_data, check_existence_holiday_data
+from .database import (check_existence_uzonia_data, add_new_uzonia_data,
+                       add_holiday_data, check_existence_holiday_data, get_latest_uzonia_data, get_nth_uzonia_data)
 from .bank_data import bank_holidays
 from uuid import uuid4
 
@@ -55,22 +56,53 @@ async def add_all_uzonia_data_to_the_db() -> bool:
         day_type = row['Day']
         days = row['weight']
 
-        next_index = index + 1
+        if index >= 1:
+            latest_uzonia_value = await get_latest_uzonia_data(cb_date=uzonia_date)
+            uzonia_index = latest_uzonia_value['index'] * (1 + ((day_uzonia / 100 ) * (days / 365)))
 
-        # Get next row safely
-        if next_index < len(uzonia_data):
-            next_row = uzonia_data.iloc[next_index]  # or .loc[next_index] if index is default
-            day_7_uzonia = next_row['7-day UZONIA'] * 100 if pd.notnull(row['7-day UZONIA']) else None
-            day_30_uzonia = next_row['30-day UZONIA'] * 100 if pd.notnull(row['30-day UZONIA']) else None
-            day_90_uzonia = next_row['90-day UZONIA'] * 100 if pd.notnull(row['90-day UZONIA']) else None
-            day_180_uzonia = next_row['180-day UZONIA']* 100 if pd.notnull(row['180-day UZONIA']) else None
-            uzonia_index = next_row['UZONIA index'] if pd.notnull(row['UZONIA index']) else None
+            if index >7:
+                nth_index_value = await get_nth_uzonia_data(nth_value=6)
+                day_7_uzonia = ((uzonia_index / nth_index_value) - 1) * 365 / 7 * 100
+            else:
+                day_7_uzonia = None
+                day_30_uzonia = None
+                day_90_uzonia = None
+                day_180_uzonia = None
+
+                if index > 29:
+                    nth_index_value = await get_nth_uzonia_data(nth_value=29)
+                    day_30_uzonia = ((uzonia_index / nth_index_value) - 1) * 365 / 7 * 100
+
+                else:
+                    day_90_uzonia = None
+                    day_180_uzonia = None
+
+
+
+                    if index > 179:
+                        nth_index_value = await get_nth_uzonia_data(nth_value=179)
+                        day_90_uzonia = ((uzonia_index / nth_index_value) - 1) * 365 / 7 * 100
+
+                    else:
+                        day_180_uzonia = None
+
         else:
-            day_7_uzonia = row['7-day UZONIA'] * 100 if pd.notnull(row['7-day UZONIA']) else None
-            day_30_uzonia = row['30-day UZONIA'] * 100 if pd.notnull(row['30-day UZONIA']) else None
-            day_90_uzonia = row['90-day UZONIA'] * 100 if pd.notnull(row['90-day UZONIA']) else None
-            day_180_uzonia = row['180-day UZONIA'] * 100 if pd.notnull(row['180-day UZONIA']) else None
-            uzonia_index = row['UZONIA index'] if pd.notnull(row['UZONIA index']) else None
+            next_index = index + 1
+
+            # Get next row safely
+            if next_index < len(uzonia_data):
+                next_row = uzonia_data.iloc[next_index]  # or .loc[next_index] if index is default
+                uzonia_index = next_row['UZONIA index'] if pd.notnull(row['UZONIA index']) else None
+                day_7_uzonia = next_row['7-day UZONIA'] * 100 if pd.notnull(row['7-day UZONIA']) else None
+                day_30_uzonia = next_row['30-day UZONIA'] * 100 if pd.notnull(row['30-day UZONIA']) else None
+                day_90_uzonia = next_row['90-day UZONIA'] * 100 if pd.notnull(row['90-day UZONIA']) else None
+                day_180_uzonia = next_row['180-day UZONIA']* 100 if pd.notnull(row['180-day UZONIA']) else None
+            else:
+                uzonia_index = row['UZONIA index'] if pd.notnull(row['UZONIA index']) else None
+                day_7_uzonia = row['7-day UZONIA'] * 100 if pd.notnull(row['7-day UZONIA']) else None
+                day_30_uzonia = row['30-day UZONIA'] * 100 if pd.notnull(row['30-day UZONIA']) else None
+                day_90_uzonia = row['90-day UZONIA'] * 100 if pd.notnull(row['90-day UZONIA']) else None
+                day_180_uzonia = row['180-day UZONIA'] * 100 if pd.notnull(row['180-day UZONIA']) else None
 
         unique_job_id = str(uuid4().hex)
 
