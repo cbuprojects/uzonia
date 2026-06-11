@@ -41,7 +41,7 @@ from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data
                             edit_user_password, delete_user,
                             get_all_sessions_data, edit_session_status, delete_session,
                             add_action_data, get_all_actions_data, edit_action_status, delete_single_action, get_single_action_data,
-                            get_all_bank_ids, get_single_bank_data_id, get_all_bank_data, add_bank_data, edit_bank_data, delete_bank_data)
+                            get_all_bank_ids, get_single_bank_data_name, get_all_bank_data, add_bank_data, edit_bank_data, delete_bank_data)
 from utils.add_data import add_all_uzonia_data_to_the_db, add_new_holiday_data_to_the_db, add_new_bank_data_to_the_db
 from utils.calculations import calculate_day_uzonia, calculate_cb_rate
 from utils.draw_graph import draw_graph_data
@@ -166,7 +166,7 @@ ls = str(os.getenv("LS"))
 dp = str(os.getenv("DP"))
 l = str(os.getenv("L"))
 iad = os.getenv("IAD", "false").lower() == "true"
-ias = os.getenv("IAC", "false").lower() == "true"
+ias = os.getenv("IAS", "false").lower() == "true"
 
 async def create_admin_user():
     token = secrets.token_hex(64)
@@ -1195,19 +1195,19 @@ async def edit_holiday_api(description: str, old_holiday_date: date, user_sessio
     unique_job_id = str(uuid4().hex)
     user_session = await get_session(session_id=user_session_data['session_id'])
 
+    logger.info("edit_holiday | holiday_date=%s  description=%s", old_holiday_date, description)
+    if not old_holiday_date:
+        logger.warning("edit_holiday | Missing holiday_date")
+        raise HTTPException(status_code=400, detail="Holiday date is required")
+
+    checking_data_existence = await get_single_holiday_data(holiday_date=old_holiday_date)
+    if not checking_data_existence:
+        logger.warning("edit_holiday | Not found: holiday_date=%s", old_holiday_date)
+        raise HTTPException(status_code=404, detail="Such data does not exist!")
+
     try:
-        logger.info("edit_holiday | holiday_date=%s  description=%s", old_holiday_date, description)
-        if not old_holiday_date:
-            logger.warning("edit_holiday | Missing holiday_date")
-            raise HTTPException(status_code=400, detail="Holiday date is required")
-
-        checking_data_existence = await get_single_holiday_data(holiday_date=old_holiday_date)
-        if not checking_data_existence:
-            logger.warning("edit_holiday | Not found: holiday_date=%s", old_holiday_date)
-            raise HTTPException(status_code=404, detail="Such data does not exist!")
-
         now = datetime.now(tz)
-        updated_row = await edit_holiday_data(description=description, updated_at=now, holiday_date=old_holiday_date)
+        updated_row = await edit_holiday_data(unique_job_id=unique_job_id, description=description, updated_at=now, holiday_date=old_holiday_date)
         if not updated_row:
             logger.error("edit_holiday | DB update failed for old_holiday_date=%s", old_holiday_date)
             raise HTTPException(status_code=404, detail="Could not update the holiday!")
@@ -1280,7 +1280,7 @@ async def get_single_bank_data_api(data: BankData, user_session_data = Depends(g
         logger.warning("get_single_bank_data | Missing bank_name parameter")
         raise HTTPException(status_code=400, detail="bank_name parameter is required")
 
-    bank_data = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
+    bank_data = await get_single_bank_data_name(bank_name=data.bank_name)
     if not bank_data:
         logger.warning("get_single_bank_data | Not found: bank_name=%s", data.bank_name)
         raise HTTPException(status_code=404, detail="Such data does not exist!")
@@ -1325,7 +1325,7 @@ async def add_new_bank_data_api(data: AddBankData, user_session_data = Depends(g
             logger.warning("add_new_bank_data | Missing parameters")
             raise HTTPException(status_code=400, detail="bank_name parameter is required!")
 
-        checking_data_existence = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
+        checking_data_existence = await get_single_bank_data_name(bank_name=data.bank_name)
         if checking_data_existence:
             logger.warning("add_new_bank_data | Duplicate: bank_name=%s already exists", data.bank_name)
             raise HTTPException(status_code=404, detail="Such data already exists!")
@@ -1371,19 +1371,19 @@ async def edit_bank_data_api(data: EditBankName, user_session_data = Depends(get
     unique_job_id = str(uuid4().hex)
     user_session = await get_session(session_id=user_session_data['session_id'])
 
+    logger.info("edit_bank_data | bank_name=%s", data.bank_name)
+    if not data.bank_name or not data.unique_bank_id:
+        logger.warning("edit_bank_data | Missing Bank data")
+        raise HTTPException(status_code=400, detail="Bank data is required")
+
+    checking_data_existence = await get_single_bank_data_name(bank_name=data.bank_name)
+    if not checking_data_existence:
+        logger.warning("edit_bank_data | Not found: bank_name=%s", data.bank_name)
+        raise HTTPException(status_code=404, detail="Such data does not exist!")
+
     try:
-        logger.info("edit_bank_data | bank_name=%s", data.bank_name)
-        if not data.bank_name or not data.unique_bank_id:
-            logger.warning("edit_bank_data | Missing Bank data")
-            raise HTTPException(status_code=400, detail="Bank data is required")
-
-        checking_data_existence = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
-        if not checking_data_existence:
-            logger.warning("edit_bank_data | Not found: bank_name=%s", data.bank_name)
-            raise HTTPException(status_code=404, detail="Such data does not exist!")
-
         now = datetime.now(tz)
-        updated_row = await edit_bank_data(unique_bank_id=data.unique_bank_id, bank_name=data.bank_name, updated_at=now)
+        updated_row = await edit_bank_data(unique_job_id=unique_job_id, unique_bank_id=data.unique_bank_id, bank_name=data.bank_name, updated_at=now)
         if not updated_row:
             logger.error("edit_bank_data | DB update failed for bank_name=%s", data.bank_name)
             raise HTTPException(status_code=404, detail="Could not update the holiday!")
@@ -1422,7 +1422,7 @@ async def delete_bank_data_api(data: DeleteBankData, user_session_data = Depends
             logger.warning("delete_bank_data | Missing bank data!")
             raise HTTPException(status_code=400, detail="Bank Data is required")
 
-        checking_data_existence = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
+        checking_data_existence = await get_single_bank_data_name(bank_name=data.bank_name)
         if not checking_data_existence:
             logger.warning("delete_bank_data | Not found: bank_data=%s", data.bank_name)
             raise HTTPException(status_code=404, detail="Such data does not exist!")
@@ -1444,6 +1444,7 @@ async def delete_bank_data_api(data: DeleteBankData, user_session_data = Depends
                               action='Deleted Bank Data', action_status="failed", created_at=datetime.now(tz))
         logger.error("delete_bank_data | Failed to delete bank_name=%s, error=%s", data.bank_name, e)
         raise HTTPException(status_code=404, detail="Could not delete the bank name!")
+
 
 
 # ---------------------------------------------------------------------------
@@ -1594,7 +1595,7 @@ async def edit_uzonia_api(data: EditUzoniaData, user_session_data = Depends(get_
 
     updated_row = await edit_uzonia_data(day_type=data.day_type, rate=data.rate, uzonia=data.uzonia, day_7_uzonia=data.day_7_uzonia,
                                          day_30_uzonia=data.day_30_uzonia, day_90_uzonia=data.day_90_uzonia,
-                                         day_180_uzonia=data.day_180_uzonia, index=data.index,
+                                         day_180_uzonia=data.day_180_uzonia, index=data.index, unique_job_id=unique_job_id,
                                          uzonia_date=data.uzonia_date, days=data.days)
     if not updated_row:
 

@@ -599,16 +599,16 @@ async def delete_holiday_data(holiday_date: date) -> bool:
         return False
 
 
-async def edit_holiday_data(description: str, updated_at: datetime, holiday_date: date ) -> bool:
+async def edit_holiday_data(unique_job_id: str, description: str, updated_at: datetime, holiday_date: date ) -> bool:
     """Edit holiday data from database."""
     try:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
                 UPDATE holiday_data
-                SET description = $1, updated_at = $2
-                WHERE holiday_date = $3
-                """, description, updated_at, holiday_date
+                SET unique_job_id = $1, description = $2, updated_at = $3
+                WHERE holiday_date = $4
+                """, unique_job_id, description, updated_at, holiday_date
             )
         return True
     except Exception as e:
@@ -677,7 +677,7 @@ async def check_existence_holiday_data() -> bool:
 # bank_data
 # ----------------------------------------------------------------------------------------------------------------------
 
-async def get_single_bank_data_id(unique_bank_id: int) -> Optional[Dict]:
+async def get_single_bank_data_name(bank_name: str) -> Optional[Dict]:
     """Get bank data from database for a specific bank id."""
     try:
         async with pool.acquire() as conn:
@@ -685,8 +685,8 @@ async def get_single_bank_data_id(unique_bank_id: int) -> Optional[Dict]:
                 """
                 SELECT unique_job_id, unique_bank_id, bank_name, updated_at, created_at
                 FROM bank_data
-                WHERE unique_bank_id = $1
-                """, unique_bank_id
+                WHERE bank_name = $1
+                """, bank_name
             )
         if row:
             return {'unique_job_id': row['unique_job_id'],
@@ -752,16 +752,16 @@ async def delete_bank_data(unique_bank_id: int) -> bool:
         return False
 
 
-async def edit_bank_data(bank_name: str, updated_at: datetime, unique_bank_id: int) -> bool:
+async def edit_bank_data(unique_job_id: str, bank_name: str, updated_at: datetime, unique_bank_id: int) -> bool:
     """Edit bank data from database."""
     try:
         async with pool.acquire() as conn:
             await conn.execute(
                 """
                 UPDATE bank_data
-                SET bank_name = $1, updated_at = $2
-                WHERE unique_bank_id = $3
-                """, bank_name, updated_at, unique_bank_id
+                SET unique_job_id = $1, bank_name = $2 updated_at = $3
+                WHERE unique_bank_id = $4
+                """, unique_job_id, bank_name, updated_at, unique_bank_id
             )
         return True
     except Exception as e:
@@ -907,7 +907,7 @@ async def delete_uzonia_data(uzonia_date: date) -> bool:
 
 
 async def edit_uzonia_data(day_type: str, rate: float, uzonia: float, day_7_uzonia: float, day_30_uzonia: float, day_90_uzonia: float,
-                           day_180_uzonia: float, index: float, uzonia_date: date, days: int) -> bool:
+                           day_180_uzonia: float, index: float, unique_job_id: str, uzonia_date: date, days: int) -> bool:
     """Edit uzonia data from database."""
     try:
         async with pool.acquire() as conn:
@@ -915,9 +915,9 @@ async def edit_uzonia_data(day_type: str, rate: float, uzonia: float, day_7_uzon
                 """
                 UPDATE uzonia_data
                 SET day_type = $1, rate = $2, uzonia = $3, day_7_uzonia = $4, day_30_uzonia = $5,
-                    day_90_uzonia = $6, day_180_uzonia = $7, index = $8, days = $9
-                WHERE uzonia_date = $10
-                """, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days, uzonia_date
+                    day_90_uzonia = $6, day_180_uzonia = $7, index = $8, days = $9, unique_job_id = $10
+                WHERE uzonia_date = $11
+                """, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, days, unique_job_id, uzonia_date
             )
 
         return True
