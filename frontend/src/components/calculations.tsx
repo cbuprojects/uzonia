@@ -66,6 +66,7 @@ const NAV_PAGES = [
   { key: 'depo',         icon: 'savings',         path: '/depo'         },
   { key: 'data',         icon: 'database',        path: '/data'         },
   { key: 'holidays',     icon: 'calendar_month',  path: '/holidays'     },
+  { key: 'bank_names',   icon: 'calendar_month',  path: '/bank_names'   },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

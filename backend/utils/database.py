@@ -50,18 +50,29 @@ async def init_db_pool() -> None:
         """)
 
         await conn.execute("""
+            CREATE TABLE IF NOT EXISTS bank_data (
+                id                       SERIAL PRIMARY KEY,
+                unique_job_id            TEXT NOT NULL UNIQUE,
+                unique_bank_id           INTEGER NOT NULL UNIQUE,
+                bank_name                TEXT NOT NULL UNIQUE,
+                updated_at               TIMESTAMPTZ,
+                created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        """)
+
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS uzonia_data (
                 id                        SERIAL PRIMARY KEY,
                 unique_job_id             TEXT NOT NULL UNIQUE,
                 file_id                   TEXT NOT NULL,
                 day_type                  TEXT NOT NULL,
-                rate                      NUMERIC(18, 4) NOT NULL,
-                uzonia                    NUMERIC(18, 4) NOT NULL,
-                day_7_uzonia              NUMERIC(18, 4),
-                day_30_uzonia             NUMERIC(18, 4),
-                day_90_uzonia             NUMERIC(18, 4),
-                day_180_uzonia            NUMERIC(18, 4),
-                index                     NUMERIC(18, 4) NOT NULL,
+                rate                      NUMERIC(27, 24) NOT NULL,
+                uzonia                    NUMERIC(27, 24) NOT NULL,
+                day_7_uzonia              NUMERIC(27, 24),
+                day_30_uzonia             NUMERIC(27, 24),
+                day_90_uzonia             NUMERIC(27, 24),
+                day_180_uzonia            NUMERIC(27, 24),
+                index                     NUMERIC(27, 24) NOT NULL,
                 uzonia_date               DATE NOT NULL UNIQUE,
                 days                      INTEGER NOT NULL,
                 created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -77,8 +88,8 @@ async def init_db_pool() -> None:
                 date_out                 DATE NOT NULL,
                 dealer_from              TEXT NOT NULL,
                 dealer_to                TEXT NOT NULL,
-                days                     NUMERIC(8, 2) NOT NULL,
-                rate                     NUMERIC(8, 2) NOT NULL,
+                days                     NUMERIC(12, 2) NOT NULL,
+                rate                     NUMERIC(12, 2) NOT NULL,
                 money_in                 NUMERIC(18, 2) NOT NULL,
                 money_out                NUMERIC(18, 2) NOT NULL,
                 created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()          
@@ -94,8 +105,8 @@ async def init_db_pool() -> None:
                 date_out                 DATE NOT NULL,
                 dealer_from              TEXT,
                 dealer_to                TEXT,
-                days                     NUMERIC(8, 2) NOT NULL,
-                rate                     NUMERIC(8, 3) NOT NULL,
+                days                     NUMERIC(12, 2) NOT NULL,
+                rate                     NUMERIC(12, 3) NOT NULL,
                 money                    NUMERIC(18, 2) NOT NULL,
                 created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()             
             )
@@ -647,7 +658,7 @@ async def get_all_holiday_data() -> List[Dict]:
                 return []
     except Exception as e:
         print(f'Could not get all holiday data from database: {e}')
-        return None
+        return []
 
 
 async def check_existence_holiday_data() -> bool:
@@ -659,6 +670,160 @@ async def check_existence_holiday_data() -> bool:
     except Exception as e:
         print(e)
         return False
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# bank_data
+# ----------------------------------------------------------------------------------------------------------------------
+
+async def get_single_bank_data_id(unique_bank_id: int) -> Optional[Dict]:
+    """Get bank data from database for a specific bank id."""
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                SELECT unique_job_id, unique_bank_id, bank_name, updated_at, created_at
+                FROM bank_data
+                WHERE unique_bank_id = $1
+                """, unique_bank_id
+            )
+        if row:
+            return {'unique_job_id': row['unique_job_id'],
+                    'unique_bank_id': row['unique_bank_id'],
+                    'bank_name': row['bank_name'],
+                    'updated_at': row['updated_at'],
+                    'created_at': row['created_at']}
+        else:
+            return None
+    except Exception as e:
+        print(f'Could not get holiday data from database: {e}')
+        return None
+
+
+async def get_all_bank_ids() -> List[Dict]:
+    """Get bank ids from database"""
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT unique_bank_id
+                FROM bank_data
+                ORDER BY bank_name ASC
+                """
+            )
+        if rows:
+            return [row['unique_bank_id'] for row in rows]
+        else:
+            return []
+    except Exception as e:
+        print(f'Could not get bank data from database: {e}')
+        return []
+
+
+async def add_bank_data(unique_job_id: str, unique_bank_id: int, bank_name: str, created_at: datetime) -> bool:
+    """Insert a new bank name. Returns False on duplicate."""
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO bank_data (unique_job_id, unique_bank_id, bank_name, created_at)
+                VALUES ($1, $2, $3, $4)
+                """, unique_job_id, unique_bank_id, bank_name, created_at
+            )
+        return True
+    except asyncpg.UniqueViolationError:
+        return False
+
+
+async def delete_bank_data(unique_bank_id: int) -> bool:
+    """Delete holiday data from database."""
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                DELETE FROM bank_data
+                WHERE unique_bank_id = $1
+                """, unique_bank_id
+            )
+        return True
+    except Exception as e:
+        print(f'Could not delete holiday data from database: {e}')
+        return False
+
+
+async def edit_bank_data(bank_name: str, updated_at: datetime, unique_bank_id: int) -> bool:
+    """Edit bank data from database."""
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                UPDATE bank_data
+                SET bank_name = $1, updated_at = $2
+                WHERE unique_bank_id = $3
+                """, bank_name, updated_at, unique_bank_id
+            )
+        return True
+    except Exception as e:
+        print(f'Could not edit bank data from database: {e}')
+        return False
+
+
+async def get_all_bank_data() -> List[Dict]:
+    """Get all bank data."""
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT
+                    b.unique_job_id,
+                    b.unique_bank_id,
+                    b.bank_name,
+                    b.updated_at,
+                    b.created_at,
+
+                    ua.user_id,
+                    usr.username,
+                    usr.first_name,
+                    usr.last_name,
+                    usr.department
+
+                FROM bank_data b
+                LEFT JOIN user_actions ua
+                    ON ua.unique_job_id = b.unique_job_id
+                LEFT JOIN users usr
+                    ON usr.user_id = ua.user_id
+
+                ORDER BY b.bank_name ASC;
+                """
+            )
+            if rows:
+                return [{'unique_job_id': row['unique_job_id'],
+                         'unique_bank_id': row['unique_bank_id'],
+                         'bank_name': row['bank_name'],
+                         'updated_at': row['updated_at'],
+                         'created_at': row['created_at'],
+                         'username': row['username'],
+                         'first_name': row['first_name'],
+                         'last_name': row['last_name'],
+                         'department': row['department']} for row in rows]
+            else:
+                return []
+    except Exception as e:
+        print(f'Could not get all bank data from database: {e}')
+        return None
+
+
+async def check_existence_bank_data() -> bool:
+    """Checking if bank data table has data."""
+    try:
+        async with pool.acquire() as conn:
+            exists = await conn.fetchval("SELECT EXISTS (SELECT 1 FROM bank_data);")
+        return exists
+    except Exception as e:
+        print(e)
+        return False
+
 
 
 
@@ -854,7 +1019,7 @@ async def get_filtered_uzonia_data(till_date: date) -> List[Dict]:
         return None
 
 
-async def get_latest_n_uzonia(latest_n: int) -> list:
+async def get_latest_n_uzonia(latest_n: int, day_type: 'Working day') -> list:
     """Get uzonia data for last n days."""
     try:
         async with pool.acquire() as conn:
@@ -971,20 +1136,21 @@ async def get_latest_uzonia_data(cb_date: date, day_type = 'Working day') -> Dic
                 """
                 SELECT unique_job_id, file_id, day_type, rate, uzonia, day_7_uzonia, day_30_uzonia, day_90_uzonia, day_180_uzonia, index, uzonia_date, days
                 FROM uzonia_data
-                WHERE uzonia_date < $1 and day_type == $2
+                WHERE uzonia_date < $1 AND day_type = $2
                 ORDER BY uzonia_date DESC
                 LIMIT 1
                 """, cb_date, day_type)
+            print(row)
         if row:
             return {'unique_job_id': row['unique_job_id'],
                     'file_id': row['file_id'],
                     'day_type': row['day_type'],
                     'rate': row['rate'],
                     'uzonia': float(row['uzonia']),
-                    'day_7_uzonia': float(row['day_7_uzonia']),
-                    'day_30_uzonia': float(row['day_30_uzonia']),
-                    'day_90_uzonia': float(row['day_90_uzonia']),
-                    'day_180_uzonia': float(row['day_180_uzonia']),
+                    'day_7_uzonia': float(row['day_7_uzonia']) if row['day_7_uzonia'] else None,
+                    'day_30_uzonia': float(row['day_30_uzonia']) if row['day_30_uzonia'] else None,
+                    'day_90_uzonia': float(row['day_90_uzonia']) if row['day_90_uzonia'] else None,
+                    'day_180_uzonia': float(row['day_180_uzonia']) if row['day_180_uzonia'] else None,
                     'index': float(row['index']),
                     'uzonia_date': row['uzonia_date'],
                     'days': row['days']}

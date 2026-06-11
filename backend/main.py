@@ -40,8 +40,9 @@ from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data
                             edit_user_language, add_new_user, get_user, get_user_id, get_all_users, edit_user_details,
                             edit_user_password, delete_user,
                             get_all_sessions_data, edit_session_status, delete_session,
-                            add_action_data, get_all_actions_data, edit_action_status, delete_single_action, get_single_action_data)
-from utils.add_data import add_all_uzonia_data_to_the_db, add_new_holiday_data_to_the_db
+                            add_action_data, get_all_actions_data, edit_action_status, delete_single_action, get_single_action_data,
+                            get_all_bank_ids, get_single_bank_data_id, get_all_bank_data, add_bank_data, edit_bank_data, delete_bank_data)
+from utils.add_data import add_all_uzonia_data_to_the_db, add_new_holiday_data_to_the_db, add_new_bank_data_to_the_db
 from utils.calculations import calculate_day_uzonia, calculate_cb_rate
 from utils.draw_graph import draw_graph_data
 from utils.draw_table import draw_table_data
@@ -133,6 +134,13 @@ async def startup_event():
         logger.info('🆕 Holiday data is added')
     else:
         logger.info('📋 Holiday data is NOT added')
+
+    result = await add_new_bank_data_to_the_db()
+    if result:
+        logger.info('🆕 Bank data is added')
+    else:
+        logger.info('📋 Bank data is NOT added')
+
 
     # await create_admin_user()
 
@@ -713,17 +721,20 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
             raise HTTPException(status_code=422, detail="Such data already exists!")
 
         holidays_data = await get_all_holiday_data()
-        holidays_list = []
-        for holiday in holidays_data:
-            holidays_list.append(holiday['holiday_date'])
-
-        if cb_date in holidays_list:
-            raise HTTPException(status_code=400, detail="This is holiday date!")
+        if holidays_data:
+            holidays_list = []
+            for holiday in holidays_data:
+                holidays_list.append(holiday['holiday_date'])
+        else:
+            holidays_list = []
 
         if cb_date.weekday() >= 5:
             day_type='Day-off'
         else:
             day_type='Working day'
+
+        if cb_date in holidays_list:
+            day_type='Day-off'
 
         file_id = uuid4().hex[:12]
         unique_job_id = str(uuid4().hex)
@@ -857,9 +868,9 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         depo_unique = deposit_file_data.drop_duplicates(subset=['Код сделки'])
 
 
-        # ------------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
         # Calculating Repo N and M
-        # ------------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
         repos_data_list = []
 
         repo_n_unique = repo_n_file_data.drop_duplicates(subset=['Номер заявки'])
@@ -1007,9 +1018,9 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         final_uzonia_data_dict = {'day_uzonia': day_uzonia, 'uzonia_calculation_way': uzonia_calculation_way}
 
 
-        # ------------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
         # Calculating N days values
-        # ------------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
         latest_uzonia_data = await get_latest_uzonia_data(cb_date=cb_date)
         print(f'latest_uzonia_data: {latest_uzonia_data}')
         latest_date = latest_uzonia_data['uzonia_date']
@@ -1171,7 +1182,7 @@ async def add_new_holiday_api(new_holiday: date, new_description: str, user_sess
                               session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
                               action='Added New Holiday', action_status="failed", created_at=datetime.now(tz))
         logger.error("add_new_holiday | Failed to add new_holiday=%s", e)
-
+        raise HTTPException(status_code=404, detail="Could not add the new holiday!")
 
 
 @app.put('/api/edit_holiday', tags=["Edit Code Status"])
@@ -1253,6 +1264,186 @@ async def delete_holiday_api(holiday_date: date, user_session_data = Depends(get
         logger.error("delete_holiday | Failed to delete holiday=%s, error=%s", holiday_date, e)
         raise HTTPException(status_code=404, detail="Could not delete the holiday!")
 
+
+
+# ---------------------------------------------------------------------------
+# holiday_data
+# ---------------------------------------------------------------------------
+
+class BankData(BaseModel):
+    unique_bank_id: int
+    bank_name: str
+@app.get("/api/get_single_bank_data", tags=["Bank Data"])
+async def get_single_bank_data_api(data: BankData, user_session_data = Depends(get_current_user)):
+    logger.info("get_single_bank_data | bank_data=%s", data.bank_name)
+    if not data.unique_bank_id or not data.bank_name:
+        logger.warning("get_single_bank_data | Missing bank_name parameter")
+        raise HTTPException(status_code=400, detail="bank_name parameter is required")
+
+    bank_data = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
+    if not bank_data:
+        logger.warning("get_single_bank_data | Not found: bank_name=%s", data.bank_name)
+        raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+    logger.info("get_single_bank_data | Found: bank_name=%s", data.bank_name)
+    return {"Status": 'Success', 'Data': bank_data}
+
+
+@app.get("/api/get_all_bank_data", tags=["All Banks"])
+async def get_all_bank_data_api(user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("get_all_bank_data | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
+
+    logger.info("get_all_bank_data | Fetching all banks")
+    all_bank_data = await get_all_bank_data()
+
+    if not all_bank_data:
+        logger.warning("get_all_bank_data | No banks found in DB")
+        return {"Status": 'Failed', 'user': user, 'Data': all_bank_data}
+
+    logger.info("get_all_bank_data | Returned %d records", len(all_bank_data))
+    return {"Status": 'Success', 'user': user, 'Data': all_bank_data}
+
+
+class AddBankData(BaseModel):
+    bank_name: str
+@app.post("/api/add_new_bank_data", tags=["Add New Bank Data"])
+async def add_new_bank_data_api(data: AddBankData, user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("add_new_bank_data | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
+
+    unique_job_id = str(uuid4().hex)
+    user_session = await get_session(session_id=user_session_data['session_id'])
+
+    try:
+        logger.info("add_new_bank_data | bank_name=%s", data.bank_name)
+        if not data.bank_name:
+            logger.warning("add_new_bank_data | Missing parameters")
+            raise HTTPException(status_code=400, detail="bank_name parameter is required!")
+
+        checking_data_existence = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
+        if checking_data_existence:
+            logger.warning("add_new_bank_data | Duplicate: bank_name=%s already exists", data.bank_name)
+            raise HTTPException(status_code=404, detail="Such data already exists!")
+
+        unique_bank_id = random.randint(100000, 999999)
+        bank_ids = await get_all_bank_ids()
+        if not bank_ids:
+            logger.warning("add_new_bank_data | Not found: Bank ids")
+
+        if unique_bank_id in bank_ids:
+            unique_bank_id = random.randint(100000, 999999)
+
+        updated_row = await add_bank_data(unique_job_id=unique_job_id, unique_bank_id=unique_bank_id, bank_name=data.bank_name, created_at=datetime.now(tz))
+        if not updated_row:
+            logger.error("add_new_bank_data | DB insert failed for bank_name=%s", data.bank_name)
+            raise HTTPException(status_code=404, detail="Could not add the new bank id to database!")
+
+        # Adding Action details
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Added New Bank Name', action_status="success", created_at=datetime.now(tz))
+        logger.info("add_new_bank_data | Successfully added bank_name=%s", data.bank_name)
+        return {"Status": 'Success', 'Data': 'Added successfully!'}
+    except Exception as e:
+        # Adding Action details
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Added New Bank Name', action_status="failed", created_at=datetime.now(tz))
+        logger.error("add_new_bank_data | Failed to add bank_name=%s", e)
+        raise HTTPException(status_code=500, detail='Could not add the new bank!')
+
+
+class EditBankName(BaseModel):
+    unique_bank_id: int
+    bank_name: str
+@app.put('/api/edit_bank_data', tags=["Edit Bank Name"])
+async def edit_bank_data_api(data: EditBankName, user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("edit_bank_data | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
+
+    unique_job_id = str(uuid4().hex)
+    user_session = await get_session(session_id=user_session_data['session_id'])
+
+    try:
+        logger.info("edit_bank_data | bank_name=%s", data.bank_name)
+        if not data.bank_name or not data.unique_bank_id:
+            logger.warning("edit_bank_data | Missing Bank data")
+            raise HTTPException(status_code=400, detail="Bank data is required")
+
+        checking_data_existence = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
+        if not checking_data_existence:
+            logger.warning("edit_bank_data | Not found: bank_name=%s", data.bank_name)
+            raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+        now = datetime.now(tz)
+        updated_row = await edit_bank_data(unique_bank_id=data.unique_bank_id, bank_name=data.bank_name, updated_at=now)
+        if not updated_row:
+            logger.error("edit_bank_data | DB update failed for bank_name=%s", data.bank_name)
+            raise HTTPException(status_code=404, detail="Could not update the holiday!")
+
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Updated Bank Name', action_status="success", created_at=datetime.now(tz))
+
+        logger.info("edit_bank_data | Bank data updated for bank_name=%s", data.bank_name)
+        return {"Status": 'Success', 'Data': 'Status updated successfully!'}
+    except Exception as e:
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Updated Bank Name', action_status="failed", created_at=datetime.now(tz))
+
+        logger.error("edit_bank_data | Failed to update bank_name=%s", e)
+        raise HTTPException(status_code=404, detail="Could not update the bank_name!")
+
+
+class DeleteBankData(BaseModel):
+    unique_bank_id: int
+    bank_name: str
+@app.delete('/api/delete_bank_data', tags=["Delete Bank Data"])
+async def delete_bank_data_api(data: DeleteBankData, user_session_data = Depends(get_current_user)):
+    user = user_session_data['user']
+    if not user:
+        logger.warning("delete_bank_data | Missing user")
+        raise HTTPException(status_code=401, detail="Not Authorized!")
+
+    unique_job_id = str(uuid4().hex)
+    user_session = await get_session(session_id=user_session_data['session_id'])
+
+    try:
+        logger.info("delete_bank_data | bank_name=%s", data.bank_name)
+        if not data.unique_bank_id or not data.bank_name:
+            logger.warning("delete_bank_data | Missing bank data!")
+            raise HTTPException(status_code=400, detail="Bank Data is required")
+
+        checking_data_existence = await get_single_bank_data_id(unique_bank_id=data.unique_bank_id)
+        if not checking_data_existence:
+            logger.warning("delete_bank_data | Not found: bank_data=%s", data.bank_name)
+            raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+        deleted_row = await delete_bank_data(unique_bank_id=data.unique_bank_id)
+        if not deleted_row:
+            logger.error("delete_bank_data | DB delete failed for bank_name=%s", data.bank_name)
+            raise HTTPException(status_code=404, detail="Such data does not exist!")
+
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Deleted Bank Data', action_status="success", created_at=datetime.now(tz))
+
+        logger.info("delete_bank_data | Deleted bank_name=%s", data.bank_name)
+        return {"Status": 'Success', 'Data': 'Deleted successfully!'}
+    except Exception as e:
+        await add_action_data(user_id=user['user_id'], unique_job_id=unique_job_id,
+                              session_id=user_session_data["session_id"], ip_address=user_session['ip_address'],
+                              action='Deleted Bank Data', action_status="failed", created_at=datetime.now(tz))
+        logger.error("delete_bank_data | Failed to delete bank_name=%s, error=%s", data.bank_name, e)
+        raise HTTPException(status_code=404, detail="Could not delete the bank name!")
 
 
 # ---------------------------------------------------------------------------
