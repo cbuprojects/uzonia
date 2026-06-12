@@ -106,12 +106,16 @@ const TRANSLATIONS = {
     // progress
     progLabel:    'Running UZONIA calculation…',
     progDetail:   'Processing repo data, validating gaps, computing weighted averages…',
-    // errors
+    // validation errors
     fillFiles:    'Please upload all three Excel files.',
     fillDate:     'Please select a date.',
     fillRate:     'Please enter a valid CB Rate.',
     fillDeposit:  'Please enter a valid CB Deposit.',
-    calcFailed:   'Calculation Failed',
+    // api errors
+    calcFailed:       'Calculation Failed',
+    errExcelFiles:    'Error reading the Excel files. Please check that all three files are valid and contain the correct columns.',
+    errDuplicate:     'A calculation for this date already exists in the database.',
+    errUnexpected:    'An unexpected error occurred. Please try again.',
     // hints
     missingFiles: (list: string) => `Upload ${list} to continue`,
     fillParams:   'Fill in all CB parameters to continue',
@@ -199,7 +203,10 @@ const TRANSLATIONS = {
     fillDate:     'Пожалуйста, выберите дату.',
     fillRate:     'Пожалуйста, введите корректную ставку ЦБ.',
     fillDeposit:  'Пожалуйста, введите корректный депозит ЦБ.',
-    calcFailed:   'Ошибка расчёта',
+    calcFailed:       'Ошибка расчёта',
+    errExcelFiles:    'Ошибка при чтении файлов Excel. Проверьте, что все три файла корректны и содержат нужные столбцы.',
+    errDuplicate:     'Расчёт за эту дату уже существует в базе данных.',
+    errUnexpected:    'Произошла непредвиденная ошибка. Пожалуйста, попробуйте ещё раз.',
     missingFiles: (list: string) => `Загрузите ${list} для продолжения`,
     fillParams:   'Заполните все параметры ЦБ для продолжения',
     calcComplete: 'Расчёт завершён',
@@ -241,7 +248,6 @@ const TRANSLATIONS = {
     paymentS: 'Платёжные системы',
     licensing: 'Лицензирование',
     pressCenter: 'Пресс-центр',
-    exchangeR: 'Курсы валют',
     contact: 'Контакты',
     addressS: 'Улица Ислама Каримова, 6',
     modules: 'Модули',
@@ -280,7 +286,10 @@ const TRANSLATIONS = {
     fillDate:     'Илтимос, сана танланг.',
     fillRate:     'Илтимос, тўғри МБ ставкасини киритинг.',
     fillDeposit:  'Илтимос, тўғри МБ депозитини киритинг.',
-    calcFailed:   'Ҳисоблаш Хатоси',
+    calcFailed:       'Ҳисоблаш Хатоси',
+    errExcelFiles:    'Excel файлларини ўқишда хато. Барча учта файл тўғри ва керакли устунларни ўз ичига олганligini текширинг.',
+    errDuplicate:     'Бу сана учун ҳисоблаш маълумотлар базасида аллақачон мавжуд.',
+    errUnexpected:    'Кутилмаган хато юз берди. Илтимос, яна уриниб кўринг.',
     missingFiles: (list: string) => `Давом этиш учун ${list}ни юкланг`,
     fillParams:   'Давом этиш учун барча МБ параметрларини тўлдиринг',
     calcComplete: 'Ҳисоблаш Тугади',
@@ -360,7 +369,10 @@ const TRANSLATIONS = {
     fillDate:     'Iltimos, sana tanlang.',
     fillRate:     "Iltimos, to'g'ri MB stavkasini kiriting.",
     fillDeposit:  "Iltimos, to'g'ri MB depozitini kiriting.",
-    calcFailed:   'Hisoblash Xatosi',
+    calcFailed:       'Hisoblash Xatosi',
+    errExcelFiles:    "Excel fayllarni o'qishda xato. Barcha uchta fayl to'g'ri va kerakli ustunlarni o'z ichiga olganligini tekshiring.",
+    errDuplicate:     "Bu sana uchun hisoblash ma'lumotlar bazasida allaqachon mavjud.",
+    errUnexpected:    'Kutilmagan xato yuz berdi. Iltimos, qayta urinib ko\'ring.',
     missingFiles: (list: string) => `Davom etish uchun ${list}ni yuklang`,
     fillParams:   "Davom etish uchun barcha MB parametrlarini to'ldiring",
     calcComplete: 'Hisoblash Tugadi',
@@ -390,7 +402,7 @@ const TRANSLATIONS = {
     langConfirmTitle: "Tilni o'zgartirish",
     langConfirmMsg: (lang: string) => `Interfeys tilini ${lang} tiliga o'zgartirishga ishonchingiz komilmi?`,
     confirm: "Ha, o'zgartirish", cancel: 'Bekor qilish',
-    officialDesc: 'UZONIA – Banklararo operatsiyalar, hisob-kitoblar va ma’lumotlarni qayta ishlash platformasi',
+    officialDesc: 'UZONIA – Banklararo operatsiyalar, hisob-kitoblar va ma\'lumotlarni qayta ishlash platformasi',
     aboutCbu: "MBU Haqida",
     executiveB: 'Boshqaruv kengashi',
     legislation: 'Qonunchilik',
@@ -399,11 +411,11 @@ const TRANSLATIONS = {
     services: 'Xizmatlar',
     exchangeR: 'Valyuta kurslari',
     policyR: 'Asosiy stavka',
-    paymentS: 'To‘lov tizimlari',
+    paymentS: 'To\'lov tizimlari',
     licensing: 'Litsenziyalash',
     pressCenter: 'Axborot xizmati',
     contact: "Bog'lanish",
-    addressS: 'Islom Karimov Ko‘chasi, 6',
+    addressS: 'Islom Karimov Ko\'chasi, 6',
     modules: 'Modullar',
     copyright: "© 2026 O'zbekiston Respublikasi Markaziy Banki. Barcha huquqlar himoyalangan.",
     privacyPolicy: 'Maxfiylik siyosati', termsOfUse: 'Foydalanish shartlari',
@@ -428,6 +440,19 @@ const fmtIndex = (n: number) => (typeof n==='number' && !isNaN(n)) ? n.toFixed(4
 const fmtDate  = (s: string) => {
   const p = String(s).split('T')[0].split('-');
   return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : s;
+};
+
+// Map API status code + detail string → translation key
+const getApiErrorKey = (status: number, detail: string): 'errExcelFiles' | 'errDuplicate' | 'errUnexpected' => {
+  if (status === 422) return 'errDuplicate';
+  if (!detail) return 'errUnexpected';
+  const d = detail.toLowerCase();
+  if (
+    d.includes('repo n') || d.includes('repo m') || d.includes('deposit file') ||
+    d.includes('missing columns') || d.includes('excel') || d.includes('could not calculate')
+  ) return 'errExcelFiles';
+  if (d.includes('already exists')) return 'errDuplicate';
+  return 'errUnexpected';
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -633,20 +658,29 @@ const CalculationsPage: React.FC = () => {
       const res = await fetch(`${API_BASE_URL}/api/add_new_uzonia_calculation`, {
         method: 'POST', headers: { Authorization: authHeader() }, body: fd,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(err.detail || 'Calculation failed.');
-      }
+
       if (res.status===401||res.status===403) {
         localStorage.removeItem('session_id'); sessionStorage.setItem('session_expired','1');
         window.location.replace('/login'); return;
       }
 
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        const detail: string = typeof payload?.detail === 'string' ? payload.detail : '';
+        const errKey = getApiErrorKey(res.status, detail);
+        const localizedMsg = t[errKey];
+        stopProgress(false);
+        setError(localizedMsg);
+        showToast(localizedMsg, 'error');
+        return;
+      }
+
       const data: CalcResult = await res.json();
       stopProgress(true); setResult(data); showToast(t.success, 'success');
-    } catch (err: any) {
-      stopProgress(false); setError(err.message || 'An unexpected error occurred.');
-      showToast(err.message || 'Calculation failed.', 'error');
+    } catch {
+      stopProgress(false);
+      setError(t.errUnexpected);
+      showToast(t.errUnexpected, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -842,7 +876,6 @@ const CalculationsPage: React.FC = () => {
         boxSizing:'border-box',
         position:'sticky', top:0, zIndex:100,
       }}>
-        {/* ── Top row: logo + right controls ── */}
         <div style={{
           display:'flex', alignItems:'center', gap:'12px',
           padding: isMobile ? '0 12px' : '0 20px',
@@ -858,186 +891,131 @@ const CalculationsPage: React.FC = () => {
               <img src={CbuLogo} alt="CBU Logo" style={{ width:'100%', height:'100%', objectFit:'contain' }} />
             </div>
             {!isMobile && (
-              <div style={{ lineHeight:'1.4', border:'0 0 0 1px solid rgba(255,255,255,0.15)', }}>
+              <div style={{ lineHeight:'1.4' }}>
                 <div style={{ fontSize:'18px', fontWeight:'700', color:'white' }}>{t.bankName}</div>
                 <div style={{ fontSize:'13px', color:'rgba(255,255,255,0.6)' }}>{t.deptSubtitle}</div>
               </div>
             )}
           </div>
 
+          {!isMobile && <div style={{ width:'1px', height:'28px', background:'rgba(255,255,255,0.15)', flexShrink:0 }} />}
 
-          {/* Divider between logo and nav */}
-            {!isMobile && <div style={{ width:'1px', height:'28px', background:'rgba(255,255,255,0.15)', flexShrink:0 }} />}
+          <div style={{ padding: '0 10px', overflowX:'auto' }}>
+            <nav style={{
+              display:'flex', alignItems:'center', gap:'6px',
+              height:'40px',
+              minWidth:'max-content',
+              flexWrap: 'nowrap',
+            }}>
+              {NAV_PAGES.map(p => <NavBtn key={p.path} page={p} />)}
+            </nav>
+          </div>
 
-            {/* Nav tabs */}
-            <div style={{ padding: '0 10px', overflowX:'auto' }}>
-              <nav style={{
-                display:'flex', alignItems:'center', gap:'6px',
-                height:'40px',
-                minWidth:'max-content',
-                flexWrap: 'nowrap',
-              }}>
-                {NAV_PAGES.map(p => <NavBtn key={p.path} page={p} />)}
-              </nav>
+          <div style={{ flex:1, minWidth:0 }} />
+
+          <div style={{ display:'flex', alignItems:'center', gap:'15px', flexShrink:0 }}>
+            {/* Language switcher */}
+            <div style={{ display:'flex', gap:'4px', background:'rgba(255,255,255,0.08)', borderRadius:'8px', padding:'4px', border:'1px solid rgba(255,255,255,0.12)', flexShrink:0 }}>
+              {(Object.entries(LANG_LABELS) as [LangKey, string][]).map(([key, label]) => (
+                <button key={key}
+                  onClick={() => key !== lang && setPendingLang(key)}
+                  style={{
+                    background: lang===key ? '#e9b741' : 'transparent',
+                    color: lang===key ? '#0a2a40' : 'rgba(255,255,255,0.75)',
+                    border:'none', borderRadius:'6px',
+                    padding:'4px 8px',
+                    fontSize:'11px', fontWeight:'600',
+                    cursor: lang===key ? 'default' : 'pointer', transition:'all 0.18s',
+                    minWidth:'26px',
+                  }}
+                  onMouseEnter={e=>{ if(lang!==key) e.currentTarget.style.background='rgba(255,255,255,0.15)'; }}
+                  onMouseLeave={e=>{ if(lang!==key) e.currentTarget.style.background='transparent'; }}
+                >{label}</button>
+              ))}
             </div>
 
-            {/* Spacer pushes right side controls to the right */}
-            <div style={{ flex:1, minWidth:0 }} />
+            {/* User avatar + dropdown */}
+            <div ref={dropdownRef} style={{ position:'relative', flexShrink:0 }}>
+              <button onClick={()=>setDropdownOpen(o=>!o)} style={{
+                background:'rgba(255,255,255,0.1)', border:'2px solid rgba(233,183,65,0.5)',
+                borderRadius:'50%', width:'44px', height:'44px',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                cursor:'pointer', transition:'all 0.2s',
+                color:'white', fontSize:'18px', fontWeight:'700',
+              }}
+              onMouseEnter={e=>{ e.currentTarget.style.borderColor='#e9b741'; e.currentTarget.style.background='rgba(233,183,65,0.2)'; }}
+              onMouseLeave={e=>{ e.currentTarget.style.borderColor='rgba(233,183,65,0.5)'; e.currentTarget.style.background='rgba(255,255,255,0.1)'; }}
+              >
+                {getInitials(user)}
+              </button>
 
-            {/* NO DIVIDER HERE ANYMORE - directly to language switcher */}
-
-            {/* RIGHT SIDE: lang + avatar */}
-            <div style={{ display:'flex', alignItems:'center', gap:'4px', flexShrink:0 }}>
-              {/* Language switcher and avatar as above */}
-            </div>
-
-          {/* ── RIGHT SIDE: lang + avatar (admin buttons moved to dropdown) ── */}
-            <div style={{ display:'flex', alignItems:'center', gap:'15px', flexShrink:0 }}>
-              {/* Language switcher */}
-              <div style={{ display:'flex', gap:'4px', background:'rgba(255,255,255,0.08)', borderRadius:'8px', padding:'4px', border:'1px solid rgba(255,255,255,0.12)', flexShrink:0 }}>
-                {(Object.entries(LANG_LABELS) as [LangKey, string][]).map(([key, label]) => (
-                  <button key={key}
-                    onClick={() => key !== lang && setPendingLang(key)}
-                    style={{
-                      background: lang===key ? '#e9b741' : 'transparent',
-                      color: lang===key ? '#0a2a40' : 'rgba(255,255,255,0.75)',
-                      border:'none', borderRadius:'6px',
-                      padding:'4px 8px',
-                      fontSize:'11px', fontWeight:'600',
-                      cursor: lang===key ? 'default' : 'pointer', transition:'all 0.18s',
-                      minWidth:'26px',
-                    }}
-                    onMouseEnter={e=>{ if(lang!==key) e.currentTarget.style.background='rgba(255,255,255,0.15)'; }}
-                    onMouseLeave={e=>{ if(lang!==key) e.currentTarget.style.background='transparent'; }}
-                  >{label}</button>
-                ))}
-              </div>
-
-              {/* User avatar + dropdown with admin buttons inside */}
-              <div ref={dropdownRef} style={{ position:'relative', flexShrink:0 }}>
-                <button onClick={()=>setDropdownOpen(o=>!o)} style={{
-                  background:'rgba(255,255,255,0.1)', border:'2px solid rgba(233,183,65,0.5)',
-                  borderRadius:'50%', width:'44px', height:'44px',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  cursor:'pointer', transition:'all 0.2s',
-                  color:'white', fontSize:'18px', fontWeight:'700',
-                }}
-                onMouseEnter={e=>{ e.currentTarget.style.borderColor='#e9b741'; e.currentTarget.style.background='rgba(233,183,65,0.2)'; }}
-                onMouseLeave={e=>{ e.currentTarget.style.borderColor='rgba(233,183,65,0.5)'; e.currentTarget.style.background='rgba(255,255,255,0.1)'; }}
-                >
-                  {getInitials(user)}
-                </button>
-
-                {/* Dropdown */}
-                {dropdownOpen && (
-                  <div style={{
-                    position:'absolute', top:'calc(100% + 10px)', right:0,
-                    background:'white', borderRadius:'16px', minWidth:'260px',
-                    boxShadow:'0 20px 40px rgba(0,0,0,0.18)', overflow:'hidden',
-                    border:'1px solid #e2e8f0', zIndex:200, animation:'dropIn 0.18s ease',
-                  }}>
-                    {/* User info */}
-                    <div style={{ padding:'20px', borderBottom:'1px solid #f1f5f9', background:'linear-gradient(135deg,#f8fafc,#eef2f7)' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-                        <div style={{ width:'48px', height:'48px', borderRadius:'50%', background:'linear-gradient(135deg,#0a3b5c,#1a5080)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'18px', fontWeight:'700', flexShrink:0, border:'3px solid #e9b741' }}>
-                          {getInitials(user)}
+              {dropdownOpen && (
+                <div style={{
+                  position:'absolute', top:'calc(100% + 10px)', right:0,
+                  background:'white', borderRadius:'16px', minWidth:'260px',
+                  boxShadow:'0 20px 40px rgba(0,0,0,0.18)', overflow:'hidden',
+                  border:'1px solid #e2e8f0', zIndex:200, animation:'dropIn 0.18s ease',
+                }}>
+                  <div style={{ padding:'20px', borderBottom:'1px solid #f1f5f9', background:'linear-gradient(135deg,#f8fafc,#eef2f7)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                      <div style={{ width:'48px', height:'48px', borderRadius:'50%', background:'linear-gradient(135deg,#0a3b5c,#1a5080)', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'18px', fontWeight:'700', flexShrink:0, border:'3px solid #e9b741' }}>
+                        {getInitials(user)}
+                      </div>
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontWeight:'700', color:'#0a3b5c', fontSize:'15px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {user ? `${user.first_name} ${user.last_name}` : '—'}
                         </div>
-                        <div style={{ minWidth:0 }}>
-                          <div style={{ fontWeight:'700', color:'#0a3b5c', fontSize:'15px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                            {user ? `${user.first_name} ${user.last_name}` : '—'}
-                          </div>
-                          <div style={{ color:'#64748b', fontSize:'12px', marginTop:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                            @{user?.username ?? '—'}
-                          </div>
-                          <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', marginTop:'6px', padding:'3px 10px', background:'#e8f0fe', borderRadius:'20px', fontSize:'11px', color:'#0a3b5c', fontWeight:'600' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize:'12px' }}>domain</span>
-                            {user?.department ?? '—'}
-                          </div>
+                        <div style={{ color:'#64748b', fontSize:'12px', marginTop:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          @{user?.username ?? '—'}
+                        </div>
+                        <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', marginTop:'6px', padding:'3px 10px', background:'#e8f0fe', borderRadius:'20px', fontSize:'11px', color:'#0a3b5c', fontWeight:'600' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize:'12px' }}>domain</span>
+                          {user?.department ?? '—'}
                         </div>
                       </div>
-                    </div>
-
-                    {/* Admin Section - only visible for admin users */}
-                    {user?.is_admin && (
-                      <div style={{ padding:'8px 12px', borderBottom:'1px solid #f1f5f9' }}>
-                        <div style={{ padding:'4px 8px', marginBottom:'4px', fontSize:'11px', fontWeight:'600', color:'#64748b', textTransform:'uppercase', letterSpacing:'0.5px' }}>
-                          Administration
-                        </div>
-                        {[
-                          { icon:'group', label: t.usersBtn, route:'/users_data', color:'#3b82f6', bg:'#eff6ff' },
-                          { icon:'manage_history', label: t.sessionsBtn, route:'/user_sessions', color:'#8b5cf6', bg:'#f5f3ff' },
-                          { icon:'timeline', label: t.actionsBtn, route:'/user_actions', color:'#f59e0b', bg:'#fffbeb' },
-                        ].map(({ icon, label, route, color, bg }) => (
-                          <button
-                            key={route}
-                            onClick={()=>{ navigate(route); setDropdownOpen(false); }}
-                            style={{
-                              width:'100%',
-                              background:'none',
-                              border:'none',
-                              textAlign:'left',
-                              padding:'10px 12px',
-                              borderRadius:'10px',
-                              cursor:'pointer',
-                              display:'flex',
-                              alignItems:'center',
-                              gap:'12px',
-                              color:'#1f2937',
-                              fontSize:'13px',
-                              fontWeight:'500',
-                              transition:'all 0.2s',
-                              marginBottom:'2px',
-                            }}
-                            onMouseEnter={e=>{
-                              e.currentTarget.style.background=bg;
-                              const iconSpan = e.currentTarget.querySelector('.admin-icon') as HTMLElement;
-                              if(iconSpan) iconSpan.style.transform = 'scale(1.1)';
-                            }}
-                            onMouseLeave={e=>{
-                              e.currentTarget.style.background='none';
-                              const iconSpan = e.currentTarget.querySelector('.admin-icon') as HTMLElement;
-                              if(iconSpan) iconSpan.style.transform = 'scale(1)';
-                            }}
-                          >
-                            <span className="material-symbols-outlined admin-icon" style={{ fontSize:'20px', color, transition:'transform 0.2s' }}>{icon}</span>
-                            <span style={{ flex:1 }}>{label}</span>
-                            <span className="material-symbols-outlined" style={{ fontSize:'16px', color:'#cbd5e1' }}>chevron_right</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Sign out */}
-                    <div style={{ padding:'8px 12px' }}>
-                      <button
-                        onClick={()=>doLogout()}
-                        style={{
-                          width:'100%',
-                          background:'none',
-                          border:'none',
-                          textAlign:'left',
-                          padding:'10px 12px',
-                          borderRadius:'10px',
-                          cursor:'pointer',
-                          display:'flex',
-                          alignItems:'center',
-                          gap:'12px',
-                          color:'#dc2626',
-                          fontSize:'13px',
-                          fontWeight:'500',
-                          transition:'all 0.2s'
-                        }}
-                        onMouseEnter={e=>{ e.currentTarget.style.background='#fef2f2'; }}
-                        onMouseLeave={e=>{ e.currentTarget.style.background='none'; }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize:'20px' }}>logout</span>
-                        <span>{t.signOut}</span>
-                      </button>
                     </div>
                   </div>
-                )}
-              </div>
+
+                  {user?.is_admin && (
+                    <div style={{ padding:'8px 12px', borderBottom:'1px solid #f1f5f9' }}>
+                      <div style={{ padding:'4px 8px', marginBottom:'4px', fontSize:'11px', fontWeight:'600', color:'#64748b', textTransform:'uppercase', letterSpacing:'0.5px' }}>
+                        Administration
+                      </div>
+                      {[
+                        { icon:'group', label: t.usersBtn, route:'/users_data', color:'#3b82f6', bg:'#eff6ff' },
+                        { icon:'manage_history', label: t.sessionsBtn, route:'/user_sessions', color:'#8b5cf6', bg:'#f5f3ff' },
+                        { icon:'timeline', label: t.actionsBtn, route:'/user_actions', color:'#f59e0b', bg:'#fffbeb' },
+                      ].map(({ icon, label, route, color, bg }) => (
+                        <button
+                          key={route}
+                          onClick={()=>{ navigate(route); setDropdownOpen(false); }}
+                          style={{ width:'100%', background:'none', border:'none', textAlign:'left', padding:'10px 12px', borderRadius:'10px', cursor:'pointer', display:'flex', alignItems:'center', gap:'12px', color:'#1f2937', fontSize:'13px', fontWeight:'500', transition:'all 0.2s', marginBottom:'2px' }}
+                          onMouseEnter={e=>{ e.currentTarget.style.background=bg; const s=e.currentTarget.querySelector('.admin-icon') as HTMLElement; if(s) s.style.transform='scale(1.1)'; }}
+                          onMouseLeave={e=>{ e.currentTarget.style.background='none'; const s=e.currentTarget.querySelector('.admin-icon') as HTMLElement; if(s) s.style.transform='scale(1)'; }}
+                        >
+                          <span className="material-symbols-outlined admin-icon" style={{ fontSize:'20px', color, transition:'transform 0.2s' }}>{icon}</span>
+                          <span style={{ flex:1 }}>{label}</span>
+                          <span className="material-symbols-outlined" style={{ fontSize:'16px', color:'#cbd5e1' }}>chevron_right</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ padding:'8px 12px' }}>
+                    <button
+                      onClick={()=>doLogout()}
+                      style={{ width:'100%', background:'none', border:'none', textAlign:'left', padding:'10px 12px', borderRadius:'10px', cursor:'pointer', display:'flex', alignItems:'center', gap:'12px', color:'#dc2626', fontSize:'13px', fontWeight:'500', transition:'all 0.2s' }}
+                      onMouseEnter={e=>{ e.currentTarget.style.background='#fef2f2'; }}
+                      onMouseLeave={e=>{ e.currentTarget.style.background='none'; }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize:'20px' }}>logout</span>
+                      <span>{t.signOut}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+          </div>
         </div>
       </header>
 
@@ -1128,7 +1106,6 @@ const CalculationsPage: React.FC = () => {
                   <span style={{ fontSize:'15px', fontWeight:'600', color:'#0a3b5c' }}>{t.cbParams}</span>
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns: isMobile?'1fr':'1fr 1fr 1fr', gap:'14px' }}>
-                  {/* Date */}
                   <div>
                     <label style={{ display:'block', marginBottom:'6px', fontWeight:'600', color:'#1e3a52', fontSize:'13px' }}>{t.cbDate} <span style={{ color:'#dc2626' }}>*</span></label>
                     <div style={{ position:'relative' }}>
@@ -1138,7 +1115,6 @@ const CalculationsPage: React.FC = () => {
                     </div>
                     <div style={{ marginTop:'4px', fontSize:'11px', color:'#94a3b8' }}>{t.cbDateHint}</div>
                   </div>
-                  {/* Rate */}
                   <div>
                     <label style={{ display:'block', marginBottom:'6px', fontWeight:'600', color:'#1e3a52', fontSize:'13px' }}>{t.cbRate} <span style={{ color:'#dc2626' }}>*</span></label>
                     <div style={{ position:'relative' }}>
@@ -1149,7 +1125,6 @@ const CalculationsPage: React.FC = () => {
                     </div>
                     <div style={{ marginTop:'4px', fontSize:'11px', color:'#94a3b8' }}>{t.cbRateHint}</div>
                   </div>
-                  {/* Deposit */}
                   <div>
                     <label style={{ display:'block', marginBottom:'6px', fontWeight:'600', color:'#1e3a52', fontSize:'13px' }}>{t.cbDeposit} <span style={{ color:'#dc2626' }}>*</span></label>
                     <div style={{ position:'relative' }}>
@@ -1195,7 +1170,6 @@ const CalculationsPage: React.FC = () => {
             {/* ── RIGHT: Results ── */}
             {result && (
               <div style={{ display:'flex', flexDirection:'column', gap:'16px' }}>
-                {/* Header card */}
                 <div style={{ background:'linear-gradient(135deg,#0a3b5c 0%,#1a6494 100%)', borderRadius:'14px', padding:'20px 22px', color:'white', boxShadow:'0 4px 20px rgba(10,59,92,0.3)' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'12px' }}>
                     <span className="material-symbols-outlined" style={{ fontSize:'22px', color:'#e9b741' }}>check_circle</span>
@@ -1219,7 +1193,6 @@ const CalculationsPage: React.FC = () => {
                   );})()}
                 </div>
 
-                {/* Rate cards */}
                 <div style={{ background:'white', borderRadius:'14px', padding:'18px', boxShadow:'0 2px 10px rgba(0,40,70,0.06)', border:'1px solid #e2e8f0' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'14px' }}>
                     <span className="material-symbols-outlined" style={{ fontSize:'17px', color:'#0a3b5c' }}>show_chart</span>
@@ -1235,7 +1208,6 @@ const CalculationsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Saved confirmation */}
                 <div style={{ background:'#f0fdf4', border:'1px solid #6ee7b7', borderRadius:'12px', padding:'14px 16px', display:'flex', alignItems:'center', gap:'10px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize:'18px', color:'#065f46', flexShrink:0 }}>storage</span>
                   <div>
@@ -1279,15 +1251,12 @@ const CalculationsPage: React.FC = () => {
       <footer style={{ width:'100%', background:'#0a2a40', borderTop:'3px solid #e9b741', boxSizing:'border-box' }}>
         <div style={{ width:'100%', maxWidth:'1600px', margin:'0 auto', padding:'40px 32px 28px', display:'grid', gridTemplateColumns: isMobile?'1fr':'280px repeat(4,1fr)', gap:'40px', alignItems:'start' }}>
 
-          {/* Brand */}
           <div>
             <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'14px' }}>
               <img src={CbuLogo} alt="CBU" style={{ width:'40px', height:'40px', objectFit:'contain', background:'white', borderRadius:'8px', padding:'4px', flexShrink:0 }} />
               <div style={{ color:'white', fontSize:'17px', fontWeight:'600', lineHeight:'1.4' }}>{t.bankName}</div>
             </div>
-            <p style={{ fontSize:'13px', lineHeight:'1.6', color:'#6b8499', marginBottom:'18px' }}>
-              {t.officialDesc}
-            </p>
+            <p style={{ fontSize:'13px', lineHeight:'1.6', color:'#6b8499', marginBottom:'18px' }}>{t.officialDesc}</p>
             <div style={{ display:'flex', gap:'12px', flexWrap:'wrap' }}>
               {[
                 { src:facebook,  alt:'Facebook',  href:'https://www.facebook.com/centralbankuzbekistan/', w:32 },
@@ -1308,34 +1277,13 @@ const CalculationsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Nav modules */}
           <div>
-            <div style={{ color:'white', fontSize:'16px', fontWeight:'600', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.modules}</div>            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
+            <div style={{ color:'white', fontSize:'16px', fontWeight:'600', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.modules}</div>
+            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
               {NAV_PAGES.map(p=>(
                 <li key={p.path} style={{ marginBottom:'14px' }}>
-                  <button
-                    onClick={() => navigate(p.path)}
-                    style={{
-                      background:'none',
-                      border:'none',
-                      padding:'0',
-                      display:'flex',
-                      alignItems:'center',
-                      gap:'5px',
-                      fontSize:'14px',
-                      color: p.path===currentPath ? '#e9b741' : '#8097a8',
-                      fontWeight: p.path===currentPath ? '600' : '400',
-                      cursor:'pointer',
-                      transition:'color 0.15s',
-                      width:'100%',
-                    }}
-                  >
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize:'15px' }}
-                    >
-                      {p.icon}
-                    </span>
+                  <button onClick={() => navigate(p.path)} style={{ background:'none', border:'none', padding:'0', display:'flex', alignItems:'center', gap:'5px', fontSize:'14px', color: p.path===currentPath ? '#e9b741' : '#8097a8', fontWeight: p.path===currentPath ? '600' : '400', cursor:'pointer', transition:'color 0.15s', width:'100%' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize:'15px' }}>{p.icon}</span>
                     {t[p.key as keyof typeof t] as string || p.key}
                   </button>
                 </li>
@@ -1343,19 +1291,18 @@ const CalculationsPage: React.FC = () => {
             </ul>
           </div>
 
-          {/* About CBU */}
           <div>
-            <div style={{ color:'white', fontSize:'16px', fontWeight:'600', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.aboutCbu}</div>            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
+            <div style={{ color:'white', fontSize:'16px', fontWeight:'600', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.aboutCbu}</div>
+            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
               {[
-                { label: t.aboutCbu,           href:'https://cbu.uz/en/about/',                   icon:'info'        },
-                { label: t.executiveB,         href:'https://cbu.uz/en/about/management/',        icon:'groups'      },
-                { label: t.legislation,        href:'https://cbu.uz/en/documents/',               icon:'gavel'       },
-                { label: t.publications,       href:'https://cbu.uz/en/statistics/publications/', icon:'description' },
-                { label: t.dataStats,          href:'https://cbu.uz/en/statistics/',              icon:'bar_chart'   },
+                { label: t.aboutCbu,     href:'https://cbu.uz/en/about/',                   icon:'info'        },
+                { label: t.executiveB,   href:'https://cbu.uz/en/about/management/',        icon:'groups'      },
+                { label: t.legislation,  href:'https://cbu.uz/en/documents/',               icon:'gavel'       },
+                { label: t.publications, href:'https://cbu.uz/en/statistics/publications/', icon:'description' },
+                { label: t.dataStats,    href:'https://cbu.uz/en/statistics/',              icon:'bar_chart'   },
               ].map(item=>(
                 <li key={item.href} style={{ marginBottom:'9px' }}>
-                  <a href={item.href} target="_blank" rel="noopener noreferrer"
-                    style={{ display:'flex', alignItems:'center', gap:'7px', fontSize:'14px', color:'#8097a8', textDecoration:'none', transition:'color 0.15s' }}
+                  <a href={item.href} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:'7px', fontSize:'14px', color:'#8097a8', textDecoration:'none', transition:'color 0.15s' }}
                     onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.color='white'; }}
                     onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.color='#8097a8'; }}
                   >
@@ -1367,19 +1314,18 @@ const CalculationsPage: React.FC = () => {
             </ul>
           </div>
 
-          {/* Services */}
           <div>
-            <div style={{ color:'white', fontSize:'16px', fontWeight:'600', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.services}</div>            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
+            <div style={{ color:'white', fontSize:'16px', fontWeight:'600', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.services}</div>
+            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
               {[
-                { label: t.exchangeR,       href:'https://cbu.uz/en/arkhiv-kursov-valyut/',              icon:'currency_exchange' },
-                { label: t.policyR,         href:'https://cbu.uz/en/monetary-policy/refinancing-rate/',  icon:'percent'           },
-                { label: t.paymentS,        href:'https://cbu.uz/en/payment-systems/',                   icon:'payments'          },
-                { label: t.licensing,       href:'https://cbu.uz/en/credit-organizations/licensing/',    icon:'verified'          },
-                { label: t.pressCenter,     href:'https://cbu.uz/en/press_center/',                      icon:'newspaper'         },
+                { label: t.exchangeR,   href:'https://cbu.uz/en/arkhiv-kursov-valyut/',              icon:'currency_exchange' },
+                { label: t.policyR,     href:'https://cbu.uz/en/monetary-policy/refinancing-rate/',  icon:'percent'           },
+                { label: t.paymentS,    href:'https://cbu.uz/en/payment-systems/',                   icon:'payments'          },
+                { label: t.licensing,   href:'https://cbu.uz/en/credit-organizations/licensing/',    icon:'verified'          },
+                { label: t.pressCenter, href:'https://cbu.uz/en/press_center/',                      icon:'newspaper'         },
               ].map(item=>(
                 <li key={item.href} style={{ marginBottom:'9px' }}>
-                  <a href={item.href} target="_blank" rel="noopener noreferrer"
-                    style={{ display:'flex', alignItems:'center', gap:'7px', fontSize:'14px', color:'#8097a8', textDecoration:'none', transition:'color 0.15s' }}
+                  <a href={item.href} target="_blank" rel="noopener noreferrer" style={{ display:'flex', alignItems:'center', gap:'7px', fontSize:'14px', color:'#8097a8', textDecoration:'none', transition:'color 0.15s' }}
                     onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.color='white'; }}
                     onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.color='#8097a8'; }}
                   >
@@ -1391,15 +1337,15 @@ const CalculationsPage: React.FC = () => {
             </ul>
           </div>
 
-          {/* Contact */}
           <div>
-            <div style={{ color:'white', fontSize:'16px', fontWeight:'700', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.contact}</div>            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
+            <div style={{ color:'white', fontSize:'16px', fontWeight:'700', marginBottom:'16px', paddingBottom:'10px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>{t.contact}</div>
+            <ul style={{ listStyle:'none', padding:0, margin:0 }}>
               {[
-                { label: '+998 71 212-62-05',    href:'tel:+998712126205',                           icon:'call'        },
-                { label: '+998 71 200-00-44',    href:'tel:+998712000044',                           icon:'call'        },
-                { label: '+998 71 233-35-09',    href:'fax:+998712333509',                           icon:'fax'         },
-                { label: 'info@cbu.uz',          href:'mailto:info@cbu.uz',                          icon:'mail'        },
-                { label: t.addressS,             href:'https://maps.app.goo.gl/4qDXnjgQoTwfWCg28',   icon:'location_on' },
+                { label: '+998 71 212-62-05', href:'tel:+998712126205',                          icon:'call'        },
+                { label: '+998 71 200-00-44', href:'tel:+998712000044',                          icon:'call'        },
+                { label: '+998 71 233-35-09', href:'fax:+998712333509',                          icon:'fax'         },
+                { label: 'info@cbu.uz',       href:'mailto:info@cbu.uz',                         icon:'mail'        },
+                { label: t.addressS,          href:'https://maps.app.goo.gl/4qDXnjgQoTwfWCg28', icon:'location_on' },
               ].map(item=>(
                 <li key={item.href} style={{ marginBottom:'9px' }}>
                   <a href={item.href} style={{ display:'flex', alignItems:'center', gap:'7px', fontSize:'14px', color:'#8097a8', textDecoration:'none', transition:'color 0.15s' }}
@@ -1415,7 +1361,6 @@ const CalculationsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom bar */}
         <div style={{ borderTop:'1px solid rgba(255,255,255,0.06)', padding:'14px 32px' }}>
           <div style={{ width:'100%', maxWidth:'1600px', margin:'0 auto', display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:'12px', color:'#4a5c6a', flexWrap:'wrap', gap:'8px' }}>
             <span>{t.copyright}</span>
@@ -1435,7 +1380,6 @@ const CalculationsPage: React.FC = () => {
         </div>
       </footer>
 
-      {/* ── Global styles ── */}
       <style>{`
         *{margin:0;padding:0;box-sizing:border-box;}
         html,body{width:100%;overflow-x:hidden;}
@@ -1449,13 +1393,8 @@ const CalculationsPage: React.FC = () => {
         input:focus{border-color:#0a3b5c!important;box-shadow:0 0 0 3px rgba(10,59,92,0.1);}
         input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:0.7;filter:invert(28%) sepia(49%) saturate(700%) hue-rotate(180deg);}
         nav::-webkit-scrollbar{height:0;}
-        /* Responsive admin button labels */
-        @media (max-width: 1200px) {
-          .admin-btn-label { display: none; }
-        }
-        @media (max-width: 1100px) {
-          .back-label { display: none; }
-        }
+        @media (max-width: 1200px) { .admin-btn-label { display: none; } }
+        @media (max-width: 1100px) { .back-label { display: none; } }
       `}</style>
     </div>
   );

@@ -1086,6 +1086,9 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         }
     except Exception as e:
         logger.info("add_new_uzonia_calculation | error=%s", e)
+        # Re-raise HTTPExceptions directly so their status code and detail reach the client
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=404, detail="Could not calculate uzonia!")
 
 
