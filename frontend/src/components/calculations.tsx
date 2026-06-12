@@ -60,13 +60,13 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
 // Nav pages
 // ─────────────────────────────────────────────────────────────────────────────
 const NAV_PAGES = [
-  { key: 'calculations', icon: 'calculate',       path: '/calculations' },
-  { key: 'uploads',      icon: 'upload_file',     path: '/uploads'      },
-  { key: 'repo',         icon: 'account_balance', path: '/repo'         },
-  { key: 'depo',         icon: 'savings',         path: '/depo'         },
-  { key: 'data',         icon: 'database',        path: '/data'         },
-  { key: 'holidays',     icon: 'calendar_month',  path: '/holidays'     },
-  { key: 'bank_names',   icon: 'calendar_month',  path: '/bank_names'   },
+  { key: 'calculations', icon: 'calculate',          path: '/calculations' },
+  { key: 'uploads',      icon: 'upload_file',        path: '/uploads'      },
+  { key: 'repo',         icon: 'account_balance',    path: '/repo'         },
+  { key: 'depo',         icon: 'savings',            path: '/depo'         },
+  { key: 'data',         icon: 'database',           path: '/data'         },
+  { key: 'holidays',     icon: 'calendar_month',     path: '/holidays'     },
+  { key: 'banks',        icon: 'currency_exchange',  path: '/banks'        },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -78,7 +78,7 @@ const TRANSLATIONS = {
     deptSubtitle: 'Department of Monetary Operations',
     // nav
     calculations: 'Calculations', uploads: 'Uploads', repo: 'Repo',
-    depo: 'Depo', data: 'Data', holidays: 'Holidays',
+    depo: 'Depo', data: 'Data', holidays: 'Holidays', banks: 'Banks',
     back: 'Back',
     // page
     pageTitle:    'UZONIA Calculation',
@@ -173,7 +173,7 @@ const TRANSLATIONS = {
     bankName:    'Центральный Банк Республики Узбекистан',
     deptSubtitle: 'Департамент Mонетарных Oпераций',
     calculations: 'Расчёты', uploads: 'Загрузки', repo: 'Репо',
-    depo: 'Депо', data: 'Данные', holidays: 'Праздники',
+    depo: 'Депо', data: 'Данные', holidays: 'Праздники', banks: 'Банки',
     back: 'Назад',
     pageTitle:    'Расчёт UZONIA',
     pageDesc:     'Загрузите три исходных файла, задайте параметры ЦБ и запустите расчёт UZONIA overnight.',
@@ -254,7 +254,7 @@ const TRANSLATIONS = {
     bankName:    'Ўзбекистон Республикаси Марказий Банки',
     deptSubtitle: 'Монетар Oперациялар Департаменти',
     calculations: 'Ҳисоб-китоб', uploads: 'Юклашлар', repo: 'Репо',
-    depo: 'Депо', data: 'Маълумотлар', holidays: 'Байрамлар',
+    depo: 'Депо', data: 'Маълумотлар', holidays: 'Байрамлар', banks: 'Банклар',
     back: 'Орқага',
     pageTitle:    'UZONIA Ҳисоблаш',
     pageDesc:     'Учта манба фaylini yuklang, МБ параметрларini kiriting va UZONIA overnight hisob-kitobini ishga tushiring.',
@@ -334,7 +334,7 @@ const TRANSLATIONS = {
     bankName:    "O'zbekiston Respublikasi Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     calculations: "Hisob-kitob", uploads: 'Yuklamalar', repo: 'Repo',
-    depo: 'Depo', data: "Ma'lumotlar", holidays: 'Bayramlar',
+    depo: 'Depo', data: "Ma'lumotlar", holidays: 'Bayramlar', banks: 'Banklar',
     back: 'Orqaga',
     pageTitle:    'UZONIA Hisoblash',
     pageDesc:     "Uchta manba faylini yuklang, MB parametrlarini kiriting va UZONIA overnight hisob-kitobini ishga tushiring.",

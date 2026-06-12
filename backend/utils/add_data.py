@@ -12,9 +12,6 @@ from uuid import uuid4
 
 tz = ZoneInfo('Asia/Tashkent')
 
-def safe_float(val):
-    return float(val) if pd.notnull(val) else None
-
 
 async def add_all_uzonia_data_to_the_db() -> bool:
     file_path = 'data/excels/all_uzonia_rates.xlsx'
@@ -57,36 +54,6 @@ async def add_all_uzonia_data_to_the_db() -> bool:
         day_uzonia = row['UZONIA'] * 100 if pd.notnull(row['UZONIA']) else None
         day_type = row['Day'].strip()
         days = row['weight']
-
-        # day_7_uzonia=None
-        # day_30_uzonia=None
-        # day_90_uzonia=None
-        # day_180_uzonia=None
-        #
-        # if index == 0:
-        #     uzonia_index = 100.0000
-        #
-        # else:
-        #     latest_uzonia_value = await get_latest_uzonia_data(cb_date=uzonia_date)
-        #     print(latest_uzonia_value)
-        #     uzonia_index = latest_uzonia_value['index'] * (1 + ((day_uzonia / 100 ) * (days / 365)))
-        #
-        #     if index >7:
-        #         nth_index_value = await get_nth_uzonia_data(nth_value=6)
-        #         day_7_uzonia = ((uzonia_index / nth_index_value) - 1) * 365 / 7 * 100
-        #
-        #         if index > 29:
-        #             nth_index_value = await get_nth_uzonia_data(nth_value=29)
-        #             day_30_uzonia = ((uzonia_index / nth_index_value) - 1) * 365 / 30 * 100
-        #
-        #             if index > 89:
-        #                 nth_index_value = await get_nth_uzonia_data(nth_value=89)
-        #                 day_90_uzonia = ((uzonia_index / nth_index_value) - 1) * 365 / 90 * 100
-        #
-        #                 if index > 179:
-        #                     nth_index_value = await get_nth_uzonia_data(nth_value=179)
-        #                     day_180_uzonia = ((uzonia_index / nth_index_value) - 1) * 365 / 180 * 100
-
 
         next_index = index + 1
 

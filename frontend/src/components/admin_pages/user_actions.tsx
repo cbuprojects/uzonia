@@ -135,6 +135,7 @@ const TRANSLATIONS = {
     depo: 'Depo',
     data: 'Data',
     holidays: 'Holidays',
+    banks: 'Banks',
     sessionId: 'Session ID',
     jobId: 'Job ID',
   },
@@ -217,6 +218,7 @@ const TRANSLATIONS = {
     depo: 'Депо',
     data: 'Данные',
     holidays: 'Праздники',
+    banks: 'Банки',
     sessionId: 'ID сессии',
     jobId: 'ID задачи',
   },
@@ -299,6 +301,7 @@ const TRANSLATIONS = {
     depo: 'Депо',
     data: 'Маълумотлар',
     holidays: 'Байрамлар',
+    banks: 'Банклар',
     sessionId: 'Сессия ID',
     jobId: 'Вазифа ID',
   },
@@ -381,6 +384,7 @@ const TRANSLATIONS = {
     depo: 'Depo',
     data: "Ma'lumotlar",
     holidays: 'Bayramlar',
+    banks: 'Banklar',
     sessionId: 'Sessiya ID',
     jobId: 'Vazifa ID',
   },
@@ -394,12 +398,13 @@ type ActionStatus = 'success' | 'failed';
 
 // Navigation pages configuration (same as CalculationsPage)
 const NAV_PAGES = [
-  { key: 'calculations', icon: 'calculate',       path: '/calculations' },
-  { key: 'uploads',      icon: 'upload_file',     path: '/uploads'      },
-  { key: 'repo',         icon: 'account_balance', path: '/repo'         },
-  { key: 'depo',         icon: 'savings',         path: '/depo'         },
-  { key: 'data',         icon: 'database',        path: '/data'         },
-  { key: 'holidays',     icon: 'calendar_month',  path: '/holidays'     },
+  { key: 'calculations', icon: 'calculate',          path: '/calculations' },
+  { key: 'uploads',      icon: 'upload_file',        path: '/uploads'      },
+  { key: 'repo',         icon: 'account_balance',    path: '/repo'         },
+  { key: 'depo',         icon: 'savings',            path: '/depo'         },
+  { key: 'data',         icon: 'database',           path: '/data'         },
+  { key: 'holidays',     icon: 'calendar_month',     path: '/holidays'     },
+  { key: 'banks',        icon: 'currency_exchange',  path: '/banks'        },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import LoginPage from './components/login';
 import CalculationsPage from './components/calculations';
 
-import BankNamesPage from './components/user_pages/bank_names';
+import BankNamesPage from './components/user_pages/banks';
 import HolidaysPage from './components/user_pages/holidays';
 import UzoniaDataPage from './components/user_pages/uzonia_data';
 import UzoniaUploadsPage from './components/user_pages/uploads';
@@ -81,7 +81,7 @@ const App = () => {
         />
 
         {/* Database Management */}
-        <Route path="/bank_names" element={<ProtectedRoute><BankNamesPage /></ProtectedRoute>} />
+        <Route path="/banks" element={<ProtectedRoute><BankNamesPage /></ProtectedRoute>} />
         <Route path="/holidays" element={<ProtectedRoute><HolidaysPage /></ProtectedRoute>} />
         <Route path="/data" element={<ProtectedRoute><UzoniaDataPage /></ProtectedRoute>} />
         <Route path="/uploads" element={<ProtectedRoute><UzoniaUploadsPage /></ProtectedRoute>} />

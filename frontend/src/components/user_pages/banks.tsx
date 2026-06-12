@@ -57,13 +57,13 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const NAV_PAGES = [
-  { key: 'calculations', icon: 'calculate',       path: '/calculations' },
-  { key: 'uploads',      icon: 'upload_file',     path: '/uploads'      },
-  { key: 'repo',         icon: 'account_balance', path: '/repo'         },
-  { key: 'depo',         icon: 'savings',         path: '/depo'         },
-  { key: 'data',         icon: 'database',        path: '/data'         },
-  { key: 'holidays',     icon: 'calendar_month',  path: '/holidays'     },
-  { key: 'bank_names',   icon: 'calendar_month',  path: '/bank_names'   },
+  { key: 'calculations', icon: 'calculate',          path: '/calculations' },
+  { key: 'uploads',      icon: 'upload_file',        path: '/uploads'      },
+  { key: 'repo',         icon: 'account_balance',    path: '/repo'         },
+  { key: 'depo',         icon: 'savings',            path: '/depo'         },
+  { key: 'data',         icon: 'database',           path: '/data'         },
+  { key: 'holidays',     icon: 'calendar_month',     path: '/holidays'     },
+  { key: 'banks',        icon: 'currency_exchange',  path: '/banks'        },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ const TRANSLATIONS = {
     deptSubtitle: 'Department of Monetary Operations',
     // nav
     calculations: 'Calculations', uploads: 'Uploads', repo: 'Repo',
-    depo: 'Depo', data: 'Data', holidays: 'Holidays',
+    depo: 'Depo', data: 'Data', holidays: 'Holidays', banks: 'Banks',
     // page title
     pageTitle:    'Bank Names',
     pageSubtitle: 'Manage counterparty bank directory',
@@ -89,8 +89,7 @@ const TRANSLATIONS = {
     colBankId:      'BANK ID',
     colBankName:    'BANK NAME',
     colUsername:    'USERNAME',
-    colFirstName:   'FIRST NAME',
-    colLastName:    'LAST NAME',
+    colName:        'NAME',
     colDepartment:  'DEPARTMENT',
     colCreatedAt:   'CREATED AT',
     colUpdatedAt:   'UPDATED AT',
@@ -100,8 +99,7 @@ const TRANSLATIONS = {
     phBankId:       'Bank ID…',
     phBankName:     'Search bank name…',
     phUsername:     'Username…',
-    phFirstName:    'First name…',
-    phLastName:     'Last name…',
+    phName:         'Search name…',
     phDepartment:   'Department…',
     phCreatedAt:    'Created date…',
     phUpdatedAt:    'Updated date…',
@@ -186,7 +184,7 @@ const TRANSLATIONS = {
     bankName:     'Центральный Банк Республики Узбекистан',
     deptSubtitle: 'Департамент Монетарных Операций',
     calculations: 'Расчёты', uploads: 'Загрузки', repo: 'Репо',
-    depo: 'Депо', data: 'Данные', holidays: 'Праздники',
+    depo: 'Депо', data: 'Данные', holidays: 'Праздники', banks: 'Банки',
     pageTitle:    'Банки',
     pageSubtitle: 'Управление справочником банков-контрагентов',
     totalBanks:      'Всего банков',
@@ -196,8 +194,7 @@ const TRANSLATIONS = {
     colBankId:      'ID БАНКА',
     colBankName:    'НАЗВАНИЕ БАНКА',
     colUsername:    'ПОЛЬЗОВАТЕЛЬ',
-    colFirstName:   'ИМЯ',
-    colLastName:    'ФАМИЛИЯ',
+    colName:        'ИМЯ',
     colDepartment:  'ОТДЕЛ',
     colCreatedAt:   'СОЗДАН',
     colUpdatedAt:   'ОБНОВЛЁН',
@@ -206,8 +203,7 @@ const TRANSLATIONS = {
     phBankId:       'ID банка…',
     phBankName:     'Поиск по названию…',
     phUsername:     'Имя пользователя…',
-    phFirstName:    'Имя…',
-    phLastName:     'Фамилия…',
+    phName:         'Имя…',
     phDepartment:   'Отдел…',
     phCreatedAt:    'Дата создания…',
     phUpdatedAt:    'Дата обновления…',
@@ -283,7 +279,7 @@ const TRANSLATIONS = {
     bankName:     'Ўзбекистон Республикаси Марказий Банки',
     deptSubtitle: 'Монетар Операциялар Департаменти',
     calculations: 'Ҳисоб-китоб', uploads: 'Юклашлар', repo: 'Репо',
-    depo: 'Депо', data: 'Маълумотлар', holidays: 'Байрамлар',
+    depo: 'Депо', data: 'Маълумотлар', holidays: 'Байрамлар', banks: 'Банклар',
     pageTitle:    'Банклар',
     pageSubtitle: 'Контрагент банклар маълумотномасини бошқариш',
     totalBanks:      'Жами банклар',
@@ -293,8 +289,7 @@ const TRANSLATIONS = {
     colBankId:      'БАНК ИД',
     colBankName:    'БАНК НОМИ',
     colUsername:    'ФОЙДАЛАНУВЧИ',
-    colFirstName:   'ИСМ',
-    colLastName:    'ФАМИЛИЯ',
+    colName:        'ИСМ',
     colDepartment:  'БЎЛИМ',
     colCreatedAt:   'ЯРАТИЛГАН',
     colUpdatedAt:   'ЯНГИЛАНГАН',
@@ -303,8 +298,7 @@ const TRANSLATIONS = {
     phBankId:       'Банк ИД…',
     phBankName:     'Банк номи бўйича қидириш…',
     phUsername:     'Фойдаланувчи…',
-    phFirstName:    'Исм…',
-    phLastName:     'Фамилия…',
+    phName:         'Исм…',
     phDepartment:   'Бўлим…',
     phCreatedAt:    'Яратилган сана…',
     phUpdatedAt:    'Янгиланган сана…',
@@ -380,7 +374,7 @@ const TRANSLATIONS = {
     bankName:     "O'zbekiston Respublikasi Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     calculations: "Hisob-kitob", uploads: 'Yuklamalar', repo: 'Repo',
-    depo: 'Depo', data: "Ma'lumotlar", holidays: 'Bayramlar',
+    depo: 'Depo', data: "Ma'lumotlar", holidays: 'Bayramlar', banks: 'Banklar',
     pageTitle:    'Banklar',
     pageSubtitle: "Kontragent banklar ma'lumotnomasini boshqarish",
     totalBanks:      'Jami banklar',
@@ -390,8 +384,7 @@ const TRANSLATIONS = {
     colBankId:      'BANK ID',
     colBankName:    'BANK NOMI',
     colUsername:    'FOYDALANUVCHI',
-    colFirstName:   'ISM',
-    colLastName:    'FAMILIYA',
+    colName:        'ISM',
     colDepartment:  "BO'LIM",
     colCreatedAt:   'YARATILGAN',
     colUpdatedAt:   'YANGILANGAN',
@@ -400,8 +393,7 @@ const TRANSLATIONS = {
     phBankId:       'Bank ID…',
     phBankName:     'Bank nomi bo\'yicha qidirish…',
     phUsername:     'Foydalanuvchi…',
-    phFirstName:    'Ism…',
-    phLastName:     'Familiya…',
+    phName:         'Ism…',
     phDepartment:   "Bo'lim…",
     phCreatedAt:    'Yaratilgan sana…',
     phUpdatedAt:    'Yangilangan sana…',
@@ -533,7 +525,7 @@ const isRecent = (s: string | null): boolean => {
 
 const BankNamesPage: React.FC = () => {
   const navigate    = useNavigate();
-  const currentPath = '/bank_names';
+  const currentPath = '/banks';
 
   // ── Responsive ───────────────────────────────────────────────────────────
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -662,8 +654,7 @@ const BankNamesPage: React.FC = () => {
   const [fBankId,     setFBankId]     = useState('');
   const [fBankName,   setFBankName]   = useState('');
   const [fUsername,   setFUsername]   = useState('');
-  const [fFirstName,  setFFirstName]  = useState('');
-  const [fLastName,   setFLastName]   = useState('');
+  const [fName,       setFName]       = useState('');
   const [fDepartment, setFDepartment] = useState('');
   const [fCreatedAt,  setFCreatedAt]  = useState('');
   const [fUpdatedAt,  setFUpdatedAt]  = useState('');
@@ -676,14 +667,15 @@ const BankNamesPage: React.FC = () => {
       if (fBankId.trim()     && !String(b.unique_bank_id).includes(fBankId.trim()))                      return false;
       if (fBankName.trim()   && !ci(b.bank_name).includes(ci(fBankName.trim())))                         return false;
       if (fUsername.trim()   && !ci(b.username || '').includes(ci(fUsername.trim())))                    return false;
-      if (fFirstName.trim()  && !ci(b.first_name || '').includes(ci(fFirstName.trim())))                 return false;
-      if (fLastName.trim()   && !ci(b.last_name || '').includes(ci(fLastName.trim())))                   return false;
+      const fullName = `${b.last_name || ''} ${b.first_name || ''}`.trim();
+      const nameForSearch = `${b.last_name || ''}, ${b.first_name || ''}`.trim();
+      if (fName.trim() && !ci(fullName).includes(ci(fName.trim())) && !ci(nameForSearch).includes(ci(fName.trim()))) return false;
       if (fDepartment.trim() && !ci(b.department || '').includes(ci(fDepartment.trim())))                return false;
       if (fCreatedAt.trim()  && !ci(formatDateTime(b.created_at)).includes(ci(fCreatedAt.trim())))       return false;
       if (fUpdatedAt.trim()  && !ci(formatDateTime(b.updated_at)).includes(ci(fUpdatedAt.trim())))       return false;
       return true;
     });
-  }, [banks, fBankId, fBankName, fUsername, fFirstName, fLastName, fDepartment, fCreatedAt, fUpdatedAt]);
+  }, [banks, fBankId, fBankName, fUsername, fName, fDepartment, fCreatedAt, fUpdatedAt]);
 
   const stats = useMemo(() => ({
     total:         banks.length,
@@ -691,17 +683,16 @@ const BankNamesPage: React.FC = () => {
     recentUpdated: banks.filter(b => isRecent(b.updated_at)).length,
   }), [banks]);
 
-  const hasActiveFilters = fBankId || fBankName || fUsername || fFirstName || fLastName || fDepartment || fCreatedAt || fUpdatedAt;
+  const hasActiveFilters = fBankId || fBankName || fUsername || fName || fDepartment || fCreatedAt || fUpdatedAt;
   const totalPages       = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData    = useMemo(
     () => filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
     [filteredData, currentPage]
   );
-  useEffect(() => { setCurrentPage(1); }, [fBankId, fBankName, fUsername, fFirstName, fLastName, fDepartment, fCreatedAt, fUpdatedAt]);
+  useEffect(() => { setCurrentPage(1); }, [fBankId, fBankName, fUsername, fName, fDepartment, fCreatedAt, fUpdatedAt]);
 
   const clearFilters = useCallback(() => {
-    setFBankId(''); setFBankName(''); setFUsername(''); setFFirstName('');
-    setFLastName(''); setFDepartment(''); setFCreatedAt(''); setFUpdatedAt('');
+    setFBankId(''); setFBankName(''); setFUsername(''); setFName(); setFDepartment(''); setFCreatedAt(''); setFUpdatedAt('');
   }, []);
 
   // ── Modals ────────────────────────────────────────────────────────────────
@@ -1047,16 +1038,10 @@ const BankNamesPage: React.FC = () => {
                 <input type="text" value={fUsername} onChange={e => setFUsername(e.target.value)} placeholder={t.phUsername} style={filterInputStyle} />
               </div>
 
-              {/* First name filter */}
-              <div style={{ position: 'relative', flex: '1 1 90px', minWidth: '80px' }}>
+              {/* Name filter (Last Name, First Name) */}
+              <div style={{ position: 'relative', flex: '2 1 140px', minWidth: '120px' }}>
                 <span className="material-symbols-outlined" style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px' }}>person</span>
-                <input type="text" value={fFirstName} onChange={e => setFFirstName(e.target.value)} placeholder={t.phFirstName} style={filterInputStyle} />
-              </div>
-
-              {/* Last name filter */}
-              <div style={{ position: 'relative', flex: '1 1 90px', minWidth: '80px' }}>
-                <span className="material-symbols-outlined" style={{ position: 'absolute', left: '7px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '13px' }}>person</span>
-                <input type="text" value={fLastName} onChange={e => setFLastName(e.target.value)} placeholder={t.phLastName} style={filterInputStyle} />
+                <input type="text" value={fName} onChange={e => setFName(e.target.value)} placeholder={t.phName} style={filterInputStyle} />
               </div>
 
               {/* Department filter */}
@@ -1105,8 +1090,7 @@ const BankNamesPage: React.FC = () => {
                 {fBankId     && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px', fontFamily: 'monospace' }}>ID: <strong>{fBankId}</strong></span>}
                 {fBankName   && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>Name: <strong>{fBankName}</strong></span>}
                 {fUsername   && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>Username: <strong>{fUsername}</strong></span>}
-                {fFirstName  && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>First: <strong>{fFirstName}</strong></span>}
-                {fLastName   && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>Last: <strong>{fLastName}</strong></span>}
+                {fName && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>Name: <strong>{fName}</strong></span>}
                 {fDepartment && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>Dept: <strong>{fDepartment}</strong></span>}
                 {fCreatedAt  && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>Created: <strong>{fCreatedAt}</strong></span>}
                 {fUpdatedAt  && <span style={{ background: 'white', padding: '1px 7px', borderRadius: '5px' }}>Updated: <strong>{fUpdatedAt}</strong></span>}
@@ -1143,7 +1127,7 @@ const BankNamesPage: React.FC = () => {
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1000px' }}>
                     <thead>
                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid #0a3b5c' }}>
-                        {[t.colIndex, t.colBankId, t.colBankName, t.colUsername, t.colFirstName, t.colLastName, t.colDepartment, t.colCreatedAt, t.colUpdatedAt, t.colActions].map(col => (
+                        {[t.colIndex, t.colBankId, t.colBankName, t.colUsername, t.colName, t.colDepartment, t.colCreatedAt, t.colUpdatedAt, t.colActions].map(col => (
                           <th key={col} style={{ padding: '12px 14px', textAlign: 'center', fontWeight: '600', color: '#0a3b5c', fontSize: '11px', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{col}</th>
                         ))}
                       </tr>
@@ -1186,22 +1170,14 @@ const BankNamesPage: React.FC = () => {
                               </div>
                             </td>
 
-                            {/* First Name */}
+                            {/* Name (Last, First) */}
                             <td style={{ padding: '10px 14px', textAlign: 'center' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#8b5cf6' }}>person</span>
-                                <span style={{ fontSize: '12px', color: '#1e293b', whiteSpace: 'nowrap' }}>
-                                  {item.first_name || '—'}
-                                </span>
-                              </div>
-                            </td>
-
-                            {/* Last Name */}
-                            <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-                                <span className="material-symbols-outlined" style={{ fontSize: '12px', color: '#8b5cf6' }}>person</span>
-                                <span style={{ fontSize: '12px', color: '#1e293b', whiteSpace: 'nowrap' }}>
-                                  {item.last_name || '—'}
+                                <span style={{ fontSize: '12px', color: '#1e293b', whiteSpace: 'nowrap', fontWeight: '500' }}>
+                                  {item.last_name && item.first_name
+                                    ? `${item.last_name} ${item.first_name}`
+                                    : item.last_name || item.first_name || '—'}
                                 </span>
                               </div>
                             </td>

@@ -26,10 +26,9 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
 
-from utils.bank_data import bank_names
 from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data, get_all_holiday_data,
                             add_holiday_data, edit_holiday_data, delete_holiday_data,
-                            get_latest_n_uzonia, get_single_uzonia_data, add_new_uzonia_data,
+                            get_single_uzonia_data, add_new_uzonia_data,
                             delete_uzonia_data, get_all_uzonia_data, edit_uzonia_data, get_nth_uzonia_data,
                             get_single_uzonia_upload, get_all_uzonia_uploads, delete_uzonia_upload, edit_uzonia_upload_status,
                             get_date_filtered_rate_uzonia, get_time_period_uzonia_data,
@@ -41,7 +40,8 @@ from utils.database import (init_db_pool, close_db_pool, get_single_holiday_data
                             edit_user_password, delete_user,
                             get_all_sessions_data, edit_session_status, delete_session,
                             add_action_data, get_all_actions_data, edit_action_status, delete_single_action, get_single_action_data,
-                            get_all_bank_ids, get_single_bank_data_name, get_all_bank_data, add_bank_data, edit_bank_data, delete_bank_data)
+                            get_all_bank_ids, get_single_bank_data_name, get_all_bank_data, add_bank_data,
+                            edit_bank_data, delete_bank_data, get_all_bank_names)
 from utils.add_data import add_all_uzonia_data_to_the_db, add_new_holiday_data_to_the_db, add_new_bank_data_to_the_db
 from utils.calculations import calculate_day_uzonia, calculate_cb_rate
 from utils.draw_graph import draw_graph_data
@@ -166,7 +166,7 @@ ls = str(os.getenv("LS"))
 dp = str(os.getenv("DP"))
 l = str(os.getenv("L"))
 iad = os.getenv("IAD", "false").lower() == "true"
-ias = os.getenv("IAS", "false").lower() == "true"
+ias = os.getenv("IAC", "false").lower() == "true"
 
 async def create_admin_user():
     token = secrets.token_hex(64)
@@ -739,6 +739,8 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         file_id = uuid4().hex[:12]
         unique_job_id = str(uuid4().hex)
 
+        bank_names = await get_all_bank_names()
+
         # ------------------------------------------------------------------------------------------------------------------
         # Processing the first Repo N file
         # ------------------------------------------------------------------------------------------------------------------
@@ -1084,7 +1086,7 @@ async def add_new_uzonia_calculation_api(repo_n_file: UploadFile, repo_m_file: U
         }
     except Exception as e:
         logger.info("add_new_uzonia_calculation | error=%s", e)
-        raise HTTPException(status_code=401, detail="Could not calculate uzonia!")
+        raise HTTPException(status_code=404, detail="Could not calculate uzonia!")
 
 
 @app.get("/api/get_calculation_page", tags=["Calculation page"])

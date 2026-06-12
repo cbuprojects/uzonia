@@ -140,6 +140,7 @@ const TRANSLATIONS = {
     depo: 'Depo',
     data: 'Data',
     holidays: 'Holidays',
+    banks: 'Banks',
     noChanges: 'No changes detected.',
   },
   ru: {
@@ -226,6 +227,7 @@ const TRANSLATIONS = {
     depo: 'Депо',
     data: 'Данные',
     holidays: 'Праздники',
+    banks: 'Банки',
     noChanges: 'Изменений нет.',
   },
   uz_c: {
@@ -312,6 +314,7 @@ const TRANSLATIONS = {
     depo: 'Депо',
     data: 'Маълумотлар',
     holidays: 'Байрамлар',
+    banks: 'Банклар',
     noChanges: 'Ўзгаришлар йўқ.',
   },
   uz_l: {
@@ -398,6 +401,7 @@ const TRANSLATIONS = {
     depo: 'Depo',
     data: "Ma'lumotlar",
     holidays: 'Bayramlar',
+    banks: 'Banklar',
     noChanges: "O'zgarishlar yo'q.",
   },
 };
@@ -412,12 +416,13 @@ type SessionStatus = typeof STATUS_OPTIONS[number];
 
 // Navigation pages configuration
 const NAV_PAGES = [
-  { key: 'calculations', icon: 'calculate',       path: '/calculations' },
-  { key: 'uploads',      icon: 'upload_file',     path: '/uploads'      },
-  { key: 'repo',         icon: 'account_balance', path: '/repo'         },
-  { key: 'depo',         icon: 'savings',         path: '/depo'         },
-  { key: 'data',         icon: 'database',        path: '/data'         },
-  { key: 'holidays',     icon: 'calendar_month',  path: '/holidays'     },
+  { key: 'calculations', icon: 'calculate',          path: '/calculations' },
+  { key: 'uploads',      icon: 'upload_file',        path: '/uploads'      },
+  { key: 'repo',         icon: 'account_balance',    path: '/repo'         },
+  { key: 'depo',         icon: 'savings',            path: '/depo'         },
+  { key: 'data',         icon: 'database',           path: '/data'         },
+  { key: 'holidays',     icon: 'calendar_month',     path: '/holidays'     },
+  { key: 'banks',        icon: 'currency_exchange',  path: '/banks'        },
 ];
 
 // ─── Types ────────────────────────────────────────────────────────────────────

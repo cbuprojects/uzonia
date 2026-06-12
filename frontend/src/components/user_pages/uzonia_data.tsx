@@ -57,12 +57,13 @@ const apiFetch = async (url: string, options: RequestInit = {}) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const NAV_PAGES = [
-  { key: 'calculations', icon: 'calculate',       path: '/calculations' },
-  { key: 'uploads',      icon: 'upload_file',     path: '/uploads'      },
-  { key: 'repo',         icon: 'account_balance', path: '/repo'         },
-  { key: 'depo',         icon: 'savings',         path: '/depo'         },
-  { key: 'data',         icon: 'database',        path: '/data'         },
-  { key: 'holidays',     icon: 'calendar_month',  path: '/holidays'     },
+  { key: 'calculations', icon: 'calculate',          path: '/calculations' },
+  { key: 'uploads',      icon: 'upload_file',        path: '/uploads'      },
+  { key: 'repo',         icon: 'account_balance',    path: '/repo'         },
+  { key: 'depo',         icon: 'savings',            path: '/depo'         },
+  { key: 'data',         icon: 'database',           path: '/data'         },
+  { key: 'holidays',     icon: 'calendar_month',     path: '/holidays'     },
+  { key: 'banks',        icon: 'currency_exchange',  path: '/banks'        },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ const TRANSLATIONS = {
     bankName:     'The Central Bank of Uzbekistan',
     deptSubtitle: 'Department of Monetary Operations',
     calculations: 'Calculations', uploads: 'Uploads', repo: 'Repo',
-    depo: 'Depo', data: 'Data', holidays: 'Holidays',
+    depo: 'Depo', data: 'Data', holidays: 'Holidays', banks: 'Banks',
     // stats
     totalRecords:  'Total Records',
     firstDate:     'First Date',
@@ -209,7 +210,7 @@ const TRANSLATIONS = {
     bankName:     'Центральный Банк Республики Узбекистан',
     deptSubtitle: 'Департамент Монетарных Операций',
     calculations: 'Расчёты', uploads: 'Загрузки', repo: 'Репо',
-    depo: 'Депо', data: 'Данные', holidays: 'Праздники',
+    depo: 'Депо', data: 'Данные', holidays: 'Праздники', banks: 'Банки',
     totalRecords:  'Всего записей',
     firstDate:     'Первая дата',
     latestDate:    'Последняя дата',
@@ -325,7 +326,7 @@ const TRANSLATIONS = {
     bankName:     'Ўзбекистон Республикаси Марказий Банки',
     deptSubtitle: 'Монетар Операциялар Департаменти',
     calculations: 'Ҳисоб-китоб', uploads: 'Юклашлар', repo: 'Репо',
-    depo: 'Депо', data: 'Маълумотлар', holidays: 'Байрамлар',
+    depo: 'Депо', data: 'Маълумотлар', holidays: 'Байрамлар', banks: 'Банклар',
     totalRecords:  'Жами ёзувлар',
     firstDate:     'Биринчи сана',
     latestDate:    'Сўнгги сана',
@@ -441,7 +442,7 @@ const TRANSLATIONS = {
     bankName:     "O'zbekiston Respublikasi Markaziy Banki",
     deptSubtitle: 'Monetar Operatsiyalar Departamenti',
     calculations: 'Hisob-kitob', uploads: 'Yuklamalar', repo: 'Repo',
-    depo: 'Depo', data: "Ma'lumotlar", holidays: 'Bayramlar',
+    depo: 'Depo', data: "Ma'lumotlar", holidays: 'Bayramlar', banks: 'Banklar',
     totalRecords:  'Jami yozuvlar',
     firstDate:     'Birinchi sana',
     latestDate:    "So'nggi sana",

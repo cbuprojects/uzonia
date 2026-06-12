@@ -66,13 +66,13 @@ async def init_db_pool() -> None:
                 unique_job_id             TEXT NOT NULL UNIQUE,
                 file_id                   TEXT NOT NULL,
                 day_type                  TEXT NOT NULL,
-                rate                      NUMERIC(27, 24) NOT NULL,
-                uzonia                    NUMERIC(27, 24) NOT NULL,
-                day_7_uzonia              NUMERIC(27, 24),
-                day_30_uzonia             NUMERIC(27, 24),
-                day_90_uzonia             NUMERIC(27, 24),
-                day_180_uzonia            NUMERIC(27, 24),
-                index                     NUMERIC(27, 24) NOT NULL,
+                rate                      NUMERIC(21, 18) NOT NULL,
+                uzonia                    NUMERIC(21, 18) NOT NULL,
+                day_7_uzonia              NUMERIC(21, 18),
+                day_30_uzonia             NUMERIC(21, 18),
+                day_90_uzonia             NUMERIC(21, 18),
+                day_180_uzonia            NUMERIC(21, 18),
+                index                     NUMERIC(21, 18) NOT NULL,
                 uzonia_date               DATE NOT NULL UNIQUE,
                 days                      INTEGER NOT NULL,
                 created_at                TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -721,6 +721,26 @@ async def get_all_bank_ids() -> List[Dict]:
         return []
 
 
+async def get_all_bank_names() -> List[Dict]:
+    """Get bank ids from database"""
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                """
+                SELECT bank_name
+                FROM bank_data
+                ORDER BY bank_name ASC
+                """
+            )
+        if rows:
+            return [row['bank_name'] for row in rows]
+        else:
+            return []
+    except Exception as e:
+        print(f'Could not get bank data from database: {e}')
+        return []
+
+
 async def add_bank_data(unique_job_id: str, unique_bank_id: int, bank_name: str, created_at: datetime) -> bool:
     """Insert a new bank name. Returns False on duplicate."""
     try:
@@ -1017,26 +1037,6 @@ async def get_filtered_uzonia_data(till_date: date) -> List[Dict]:
     except Exception as e:
         print(f'Could not get all uzonia data from database: {e}')
         return None
-
-
-async def get_latest_n_uzonia(latest_n: int, day_type: 'Working day') -> list:
-    """Get uzonia data for last n days."""
-    try:
-        async with pool.acquire() as conn:
-            rows = await conn.fetch("""
-                SELECT uzonia, days, uzonia_date
-                FROM uzonia_data
-                ORDER BY uzonia_date DESC
-                LIMIT $1
-            """, latest_n, day_type)
-            if rows:
-                rows = [[float(row['uzonia']), float(row['days'])] for row in rows]
-            else:
-                rows = []
-            return rows
-    except Exception as e:
-        print(f"Error fetching UZONIA data: {e}")
-        return []
 
 
 async def get_nth_uzonia_data(nth_value: int) -> float | None:
