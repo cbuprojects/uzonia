@@ -142,7 +142,7 @@ async def startup_event():
         logger.info('📋 Bank data is NOT added')
 
 
-    await create_admin_user()
+    # await create_admin_user()
 
 
     logger.info("✅ Startup complete: DB pool initialized")
