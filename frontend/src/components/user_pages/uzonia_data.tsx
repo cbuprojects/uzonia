@@ -938,7 +938,7 @@ const UzoniaDataPage: React.FC = () => {
   const clearFilters = useCallback(() => {
     setFDate(''); setFDays(''); setFDayType(''); setFRate(''); setFUzonia('');
     setFDay7(''); setFDay30(''); setFDay90(''); setFDay180(''); setFIndex('');
-    setFUsername(''); setFName(); setFCreated('');
+    setFUsername(''); setFName(''); setFCreated('');
   }, []);
 
   // ── Modals ────────────────────────────────────────────────────────────────

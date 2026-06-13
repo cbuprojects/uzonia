@@ -766,7 +766,7 @@ const HolidaysPage: React.FC = () => {
   useEffect(() => { setCurrentPage(1); }, [fDate, fDescription, fUsername, fName, fDepartment, fCreatedAt, fUpdatedAt, fPeriod]);
 
   const clearFilters = useCallback(() => {
-    setFDate(''); setFDescription(''); setFUsername(''); setFName();
+    setFDate(''); setFDescription(''); setFUsername(''); setFName('');
     setFDepartment(''); setFCreatedAt(''); setFUpdatedAt(''); setFPeriod('all');
   }, []);
 

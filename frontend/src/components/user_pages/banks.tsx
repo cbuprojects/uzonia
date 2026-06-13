@@ -692,7 +692,7 @@ const BankNamesPage: React.FC = () => {
   useEffect(() => { setCurrentPage(1); }, [fBankId, fBankName, fUsername, fName, fDepartment, fCreatedAt, fUpdatedAt]);
 
   const clearFilters = useCallback(() => {
-    setFBankId(''); setFBankName(''); setFUsername(''); setFName(); setFDepartment(''); setFCreatedAt(''); setFUpdatedAt('');
+    setFBankId(''); setFBankName(''); setFUsername(''); setFName(''); setFDepartment(''); setFCreatedAt(''); setFUpdatedAt('');
   }, []);
 
   // ── Modals ────────────────────────────────────────────────────────────────
