@@ -48,7 +48,7 @@ export const logout = () => {
  * API utility layer (e.g. intercept 401 → call logout()) so the user is
  * sent back to the login page automatically on session expiry.
  */
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   if (!isAuthenticated()) {
